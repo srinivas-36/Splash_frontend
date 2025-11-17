@@ -6,6 +6,7 @@ import { ChevronLeft, Grid, Download, Trash2, Filter, Calendar, Tag, RefreshCw, 
 import Image from "next/image"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
+import toast from "react-hot-toast"
 
 export default function GalleryPage() {
     const router = useRouter()
@@ -23,6 +24,36 @@ export default function GalleryPage() {
         error: null
     })
 
+    // Map filter categories to image types for API
+    const getFilterType = (filterCategory) => {
+        if (filterCategory === "all") return null
+        if (filterCategory === "plain") return "white_background"
+        if (filterCategory === "themed") return "background_change"
+        if (filterCategory === "model") return null // Will need to filter both model types
+        if (filterCategory === "campaign") return "campaign_shot_advanced"
+        return null
+    }
+
+    // Map image types to filter categories
+    const getImageCategory = (imageType) => {
+        if (imageType === "white_background") return "Plain"
+        if (imageType === "background_change") return "Themed"
+        if (imageType === "model_with_ornament" || imageType === "real_model_with_ornament") return "Model"
+        if (imageType === "campaign_shot_advanced") return "Campaign"
+        return "Plain" // default
+    }
+
+    // Calculate days ago
+    const getDaysAgo = (dateString) => {
+        if (!dateString) return "Recently"
+        const date = new Date(dateString)
+        const now = new Date()
+        const diffTime = Math.abs(now - date)
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        if (diffDays === 0) return "0 days ago"
+        return `${diffDays} days ago`
+    }
+
     useEffect(() => {
         loadImages()
     }, [filter, page])
@@ -30,11 +61,19 @@ export default function GalleryPage() {
     const loadImages = async () => {
         setLoading(true)
         try {
-            const filterType = filter === "all" ? null : filter
+            const filterType = getFilterType(filter)
+            // For "model" filter, we need to load all and filter client-side
             const response = await apiService.getUserImages(filterType, page, 20)
 
             if (response.success) {
-                setImages(response.images)
+                let filtered = response.images
+                // Client-side filter for "model" category (both model types)
+                if (filter === "model") {
+                    filtered = response.images.filter(img => 
+                        img.type === "model_with_ornament" || img.type === "real_model_with_ornament"
+                    )
+                }
+                setImages(filtered)
                 setTotalPages(response.pagination.pages)
             }
         } catch (error) {
@@ -87,7 +126,7 @@ export default function GalleryPage() {
                     error: null
                 })
 
-                alert('Image regenerated successfully!')
+                toast.success('Image regenerated successfully!')
             } else {
                 throw new Error(response.error || 'Regeneration failed')
             }
@@ -113,81 +152,83 @@ export default function GalleryPage() {
         }
     }
 
-    const typeLabels = {
-        white_background: "White Background",
-        background_change: "Background Replace",
-        model_with_ornament: "AI Model",
-        real_model_with_ornament: "Real Model",
-        campaign_shot_advanced: "Campaign Shot",
-    }
-
-    const typeColors = {
-        white_background: "bg-blue-100 text-blue-700",
-        background_change: "bg-green-100 text-green-700",
-        model_with_ornament: "bg-purple-100 text-purple-700",
-        real_model_with_ornament: "bg-pink-100 text-pink-700",
-        campaign_shot_advanced: "bg-orange-100 text-orange-700",
-    }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#fcfcfc] via-[#f8f7ff] to-[#f5f3ff] p-8">
+        <div className="min-h-screen bg-[#fcfcfc] p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-12">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="p-3 bg-gradient-to-r from-[#884cff] to-[#5a2fcf] rounded-2xl shadow-lg">
-                                    <Grid className="w-8 h-8 text-white" />
-                                </div>
-                                <div>
-                                    <h1 className="text-4xl font-bold bg-gradient-to-r from-[#1a1a1a] to-[#884cff] bg-clip-text text-transparent">
-                                        My Generated Images
-                                    </h1>
-                                    <p className="text-[#737373] mt-2">View, download, and regenerate all your AI-generated images</p>
-                                </div>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => router.back()}
-                            className="flex items-center gap-3 px-6 py-3 text-[#884cff] font-semibold hover:bg-[#f0e6ff] rounded-xl transition-all duration-300"
-                        >
-                            <ChevronLeft size={20} />
-                            Back
-                        </button>
-                    </div>
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold text-[#1a1a1a] mb-2">My Images</h1>
+                    <p className="text-[#737373] text-lg">All your generated visuals in one place</p>
+                </div>
 
-                    {/* Filter and Actions */}
-                    <div className="flex items-center justify-between bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
-                        <div className="flex items-center gap-4">
-                            <Filter className="w-5 h-5 text-[#884cff]" />
-                            <select
-                                value={filter}
-                                onChange={(e) => {
-                                    setFilter(e.target.value)
-                                    setPage(1)
-                                }}
-                                className="px-4 py-2 border border-[#e6e6e6] rounded-xl bg-white text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#884cff] focus:border-transparent"
-                            >
-                                <option value="all">All Types</option>
-                                <option value="white_background">White Background</option>
-                                <option value="background_change">Background Replace</option>
-                                <option value="model_with_ornament">AI Model</option>
-                                <option value="real_model_with_ornament">Real Model</option>
-                                <option value="campaign_shot_advanced">Campaign Shot</option>
-                            </select>
-                            <span className="text-[#737373] font-medium">
-                                {filteredImages.length} {filteredImages.length === 1 ? "image" : "images"}
-                            </span>
-                        </div>
-                        <button
-                            onClick={loadImages}
-                            className="flex items-center gap-2 px-4 py-2 text-[#884cff] hover:bg-[#f0e6ff] rounded-xl transition-all font-semibold"
-                        >
-                            <RefreshCw size={18} />
-                            Refresh
-                        </button>
-                    </div>
+                {/* Filter Buttons */}
+                <div className="flex items-center gap-3 mb-8">
+                    <button
+                        onClick={() => {
+                            setFilter("all")
+                            setPage(1)
+                        }}
+                        className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                            filter === "all"
+                                ? "bg-[#884cff] text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={() => {
+                            setFilter("plain")
+                            setPage(1)
+                        }}
+                        className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                            filter === "plain"
+                                ? "bg-[#884cff] text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                    >
+                        Plain
+                    </button>
+                    <button
+                        onClick={() => {
+                            setFilter("themed")
+                            setPage(1)
+                        }}
+                        className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                            filter === "themed"
+                                ? "bg-[#884cff] text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                    >
+                        Themed
+                    </button>
+                    <button
+                        onClick={() => {
+                            setFilter("model")
+                            setPage(1)
+                        }}
+                        className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                            filter === "model"
+                                ? "bg-[#884cff] text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                    >
+                        Model
+                    </button>
+                    <button
+                        onClick={() => {
+                            setFilter("campaign")
+                            setPage(1)
+                        }}
+                        className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                            filter === "campaign"
+                                ? "bg-[#884cff] text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                    >
+                        Campaign
+                    </button>
                 </div>
 
                 {/* Gallery Grid */}
@@ -218,74 +259,62 @@ export default function GalleryPage() {
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                             {filteredImages.map((image) => (
                                 <div
                                     key={image.id}
-                                    className="bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 group"
+                                    className="group cursor-pointer"
                                 >
                                     {/* Image */}
-                                    <div className="relative h-64 bg-gray-100">
+                                    <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2">
                                         <Image
                                             src={image.generated_image_url}
                                             alt={image.prompt || "Generated image"}
                                             fill
                                             className="object-cover"
                                         />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300"></div>
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300"></div>
+
+                                        {/* Hover Actions */}
+                                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 bg-black/20">
+                                            <a
+                                                href={image.generated_image_url}
+                                                download
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-2 bg-white rounded-full hover:bg-gray-100 transition-all"
+                                                title="Download"
+                                            >
+                                                <Download size={16} className="text-gray-700" />
+                                            </a>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleRegenerate(image)
+                                                }}
+                                                className="p-2 bg-white rounded-full hover:bg-gray-100 transition-all"
+                                                title="Regenerate"
+                                            >
+                                                <RefreshCw size={16} className="text-gray-700" />
+                                            </button>
+                                        </div>
 
                                         {/* Parent indicator */}
                                         {image.parent_image_id && (
-                                            <div className="absolute top-3 left-3 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                                                <RefreshCw size={12} />
+                                            <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                                                <RefreshCw size={10} />
                                                 Regenerated
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Details */}
-                                    <div className="p-5">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <Tag className="w-4 h-4 text-[#884cff]" />
-                                            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${typeColors[image.type] || 'bg-gray-100 text-gray-700'}`}>
-                                                {typeLabels[image.type] || image.type}
-                                            </span>
-                                        </div>
-
-                                        {image.prompt && (
-                                            <div className="mb-4">
-                                                <p className="text-xs font-semibold text-gray-500 mb-1">Prompt:</p>
-                                                <p className="text-sm text-[#737373] line-clamp-2">
-                                                    {image.prompt}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {image.created_at && (
-                                            <div className="flex items-center gap-2 text-xs text-[#737373] mb-4">
-                                                <Calendar className="w-3 h-3" />
-                                                {new Date(image.created_at).toLocaleDateString()}
-                                            </div>
-                                        )}
-
-                                        {/* Actions */}
-                                        <div className="flex gap-2">
-                                            <a
-                                                href={image.generated_image_url}
-                                                download
-                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-[#884cff] to-[#5a2fcf] text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all"
-                                            >
-                                                <Download size={14} />
-                                                Download
-                                            </a>
-                                            <button
-                                                onClick={() => handleRegenerate(image)}
-                                                className="px-3 py-2 border-2 border-[#884cff] text-[#884cff] rounded-xl hover:bg-[#f0e6ff] transition-all flex items-center gap-1 text-sm font-semibold"
-                                            >
-                                                <RefreshCw size={14} />
-                                                Regen
-                                            </button>
-                                        </div>
+                                    <div className="bg-white rounded-lg p-2">
+                                        <p className="text-sm font-medium text-gray-700 mb-1">
+                                            {getImageCategory(image.type)}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            Generated {getDaysAgo(image.created_at)}
+                                        </p>
                                     </div>
                                 </div>
                             ))}

@@ -249,7 +249,7 @@ export default function CollaborationPage({ projectId, projectData }) {
                     </div>
 
                     {/* Collaborator Stats */}
-                    <div className="grid grid-cols-3 gap-6 mb-8">
+                    {/* <div className="grid grid-cols-3 gap-6 mb-8">
                         <Card className="p-6 border-[#e6e6e6]">
                             <div className="flex items-center gap-3 mb-4">
                                 <Users className="w-5 h-5 text-[#708090]" />
@@ -273,7 +273,7 @@ export default function CollaborationPage({ projectId, projectData }) {
                             </div>
                             <div className="text-4xl font-bold text-[#a020f0]">{pendingInvites.length}</div>
                         </Card>
-                    </div>
+                    </div> */}
 
                     <div className="flex w-full gap-6">
                         {/* Active Members */}

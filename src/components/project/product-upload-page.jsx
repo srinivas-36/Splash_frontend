@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Upload, X, CheckCircle, Image as ImageIcon } from "lucide-react"
+import { Upload, X, CheckCircle, Image as ImageIcon, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
@@ -9,6 +9,7 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
     const [selectedFiles, setSelectedFiles] = useState([])
     const [uploadedProducts, setUploadedProducts] = useState([])
     const [uploading, setUploading] = useState(false)
+    const [deleting, setDeleting] = useState(false)
     const [error, setError] = useState(null)
     const fileInputRef = useRef(null)
     const { token } = useAuth()
@@ -30,6 +31,41 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
 
     const handleRemoveFile = (index) => {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+    }
+
+    const handleDeleteProduct = async (product) => {
+        if (!window.confirm("Are you sure you want to delete this product image?")) return
+
+        setDeleting(true)
+        setError(null)
+
+        try {
+            const response = await apiService.deleteProductImage(
+                collectionData.id,
+                product.uploaded_image_url,
+                product.uploaded_image_path,
+                token
+            )
+
+            if (response.success) {
+                // Refresh collection data to get updated products
+                const updatedCollection = await apiService.getCollection(collectionData.id, token)
+                if (updatedCollection.items?.[0]?.product_images) {
+                    setUploadedProducts(updatedCollection.items[0].product_images)
+                }
+                // Notify parent component
+                if (onSave) {
+                    await onSave({ productsUpdated: true })
+                }
+            } else {
+                setError(response.error || "Failed to delete product image.")
+            }
+        } catch (err) {
+            console.error("Error deleting product image:", err)
+            setError(err.message || "Failed to delete product image.")
+        } finally {
+            setDeleting(false)
+        }
     }
 
     const handleUpload = async () => {
@@ -177,13 +213,39 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
                         {uploadedProducts.map((product, index) => (
                             <div
                                 key={index}
-                                className="border-2 border-[#e6e6e6] rounded-lg overflow-hidden hover:border-[#884cff]/50 transition-all"
+                                className="group relative border-2 border-[#e6e6e6] rounded-lg overflow-hidden hover:border-[#884cff]/50 transition-all"
                             >
                                 <img
                                     src={product.uploaded_image_url}
                                     alt={`Product ${index + 1}`}
-                                    className="w-full h-48 object-contain bg-white"
+                                    className="w-full h-24 object-contain bg-white"
                                 />
+                                {canEdit && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDeleteProduct(product)
+                                        }}
+                                        className="absolute top-2 left-2 bg-red-500 hover:bg-red-700 text-white rounded-full p-1.5 transition-all duration-300 ease-in-out hover:scale-110 shadow-lg z-10"
+                                        title="Delete product image"
+                                        disabled={deleting || uploading}
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                                {/* Hover overlay with View button */}
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            window.open(product.uploaded_image_url, '_blank')
+                                        }}
+                                        className="bg-white hover:bg-gray-100 text-[#884cff] px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all hover:scale-105"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        View
+                                    </button>
+                                </div>
                                 <div className="p-3 bg-gray-50">
                                     <p className="text-sm font-medium text-[#1a1a1a]">Product {index + 1}</p>
                                     <p className="text-xs text-[#708090] mt-1">

@@ -1,6 +1,7 @@
 // API service layer for communicating with Django backend
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 import axios from 'axios';
+import { generateEnhancedPrompt, generateEnhancedCampaignPrompt } from './ornamentRules';
 
 class ApiService {
     constructor() {
@@ -20,12 +21,24 @@ class ApiService {
             const response = await fetch(url, config);
 
             if (!response.ok) {
+                // Handle 401 errors gracefully (user might be logging out)
+                if (response.status === 401) {
+                    // Check if we're on login page or if token is already cleared
+                    if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
+                        // Token already cleared, likely during logout - don't throw error
+                        return null;
+                    }
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
             return data;
         } catch (error) {
+            // Don't log 401 errors if token is already cleared (during logout)
+            if (error.message && error.message.includes('401') && typeof window !== 'undefined' && !localStorage.getItem('token')) {
+                return null;
+            }
             console.error('API request failed:', error);
             throw error;
         }
@@ -154,12 +167,18 @@ class ApiService {
         );
     }
 
-    async updateCollectionDescription(projectId, description, uploadedImage) {
+    async updateCollectionDescription(projectId, description, uploadedImage, targetAudience = null, campaignSeason = null) {
         // If there's an uploaded image, use FormData
         if (uploadedImage) {
             const formData = new FormData();
             formData.append('description', description);
             formData.append('uploaded_image', uploadedImage);
+            if (targetAudience) {
+                formData.append('target_audience', targetAudience);
+            }
+            if (campaignSeason) {
+                formData.append('campaign_season', campaignSeason);
+            }
 
             return fetch(`${this.baseURL}/probackendapp/api/projects/${projectId}/setup/description/`, {
                 method: 'POST',
@@ -168,9 +187,16 @@ class ApiService {
         }
 
         // Otherwise, use JSON
+        const requestData = { description };
+        if (targetAudience) {
+            requestData.target_audience = targetAudience;
+        }
+        if (campaignSeason) {
+            requestData.campaign_season = campaignSeason;
+        }
         return this.request(`/probackendapp/api/projects/${projectId}/setup/description/`, {
             method: 'POST',
-            body: JSON.stringify({ description }),
+            body: JSON.stringify(requestData),
         });
     }
 
@@ -257,10 +283,13 @@ class ApiService {
         });
     }
 
-    async saveGeneratedImages(collectionId, selectedImages) {
+    async saveGeneratedImages(collectionId, selectedImages, token) {
         return this.request(`/probackendapp/api/collections/${collectionId}/save-images/`, {
             method: 'POST',
             body: JSON.stringify({ images: selectedImages }),
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
         });
     }
 
@@ -275,9 +304,22 @@ class ApiService {
             method: 'POST',
             body: formData,
             headers: {
-                'Authorization': `Bearer ${token || ''}`,
+                'Authorization': `Bearer ${token}`,
             },
         }).then(response => response.json());
+    }
+
+    async deleteProductImage(collectionId, productImageUrl, productImagePath, token) {
+        return this.request(`/probackendapp/api/collections/${collectionId}/products/`, {
+            method: 'DELETE',
+            body: JSON.stringify({
+                product_image_url: productImageUrl,
+                product_image_path: productImagePath
+            }),
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
     }
 
     async generateProductModelImages(collectionId, token) {
@@ -418,6 +460,16 @@ class ApiService {
             },
         });
     }
+    async removeModel(collectionId, type, model, token) {
+        return this.request(`/probackendapp/api/collections/${collectionId}/models/`, {
+            method: 'DELETE',
+            body: JSON.stringify({ type, model }),
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+    }
+
 
     // Model usage statistics
     async getModelUsageStats(collectionId, token) {
@@ -449,6 +501,26 @@ class ApiService {
     }
 
     async generateModelWithOrnament(formData, token) {
+        // Extract ornament type and measurements from formData
+        const ornamentType = formData.get('ornament_type');
+        const ornamentMeasurements = formData.get('ornament_measurements');
+        const basePrompt = formData.get('prompt') || 'Generate an AI model wearing this ornament';
+
+        // Generate enhanced prompt with fitting rules
+        let enhancedPrompt = basePrompt;
+        if (ornamentType) {
+            try {
+                const measurements = ornamentMeasurements ? JSON.parse(ornamentMeasurements) : {};
+                enhancedPrompt = generateEnhancedPrompt(basePrompt, ornamentType, measurements);
+            } catch (error) {
+                console.warn('Failed to parse ornament measurements:', error);
+                enhancedPrompt = generateEnhancedPrompt(basePrompt, ornamentType, {});
+            }
+        }
+
+        // Update the prompt in formData
+        formData.set('prompt', enhancedPrompt);
+
         const response = await axios.post(`${this.baseURL}/image/generate-model/`, formData, {
             headers: {
                 'Authorization': `Bearer ${token || ''}`,
@@ -458,6 +530,26 @@ class ApiService {
     }
 
     async generateRealModelWithOrnament(formData, token) {
+        // Extract ornament type and measurements from formData
+        const ornamentType = formData.get('ornament_type');
+        const ornamentMeasurements = formData.get('ornament_measurements');
+        const basePrompt = formData.get('prompt') || 'Generate realistic image with model wearing ornament';
+
+        // Generate enhanced prompt with fitting rules
+        let enhancedPrompt = basePrompt;
+        if (ornamentType) {
+            try {
+                const measurements = ornamentMeasurements ? JSON.parse(ornamentMeasurements) : {};
+                enhancedPrompt = generateEnhancedPrompt(basePrompt, ornamentType, measurements);
+            } catch (error) {
+                console.warn('Failed to parse ornament measurements:', error);
+                enhancedPrompt = generateEnhancedPrompt(basePrompt, ornamentType, {});
+            }
+        }
+
+        // Update the prompt in formData
+        formData.set('prompt', enhancedPrompt);
+
         const response = await axios.post(`${this.baseURL}/image/generate-real-model/`, formData, {
             headers: {
                 'Authorization': `Bearer ${token || ''}`,
@@ -467,6 +559,22 @@ class ApiService {
     }
 
     async generateCampaignShot(formData, token) {
+        // Extract ornament names and base prompt from formData
+        const ornamentNames = formData.getAll('ornament_names');
+        const basePrompt = formData.get('prompt') || 'Generate campaign shot with multiple ornaments';
+
+        // Generate enhanced prompt with fitting rules for multiple ornaments
+        let enhancedPrompt = basePrompt;
+        if (ornamentNames && ornamentNames.length > 0) {
+            // For campaign shots, we'll use the ornament names as types
+            // This is a simplified approach - in a real scenario, you might want to
+            // pass ornament types separately
+            enhancedPrompt = generateEnhancedCampaignPrompt(basePrompt, ornamentNames, []);
+        }
+
+        // Update the prompt in formData
+        formData.set('prompt', enhancedPrompt);
+
         const response = await axios.post(`${this.baseURL}/image/generate-campaign-shot/`, formData, {
             headers: {
                 'Authorization': `Bearer ${token || ''}`,
@@ -535,6 +643,15 @@ class ApiService {
     async getRecentProjectHistory(token, params = {}) {
         return this.get('/probackendapp/api/recent/project-history/', {
             params,
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async getRecentImages(token, limit = 5) {
+        return this.get('/probackendapp/api/recent/images/', {
+            params: { limit },
             headers: {
                 'Authorization': `Bearer ${token || ''}`,
             },

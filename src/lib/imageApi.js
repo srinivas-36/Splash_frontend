@@ -3,6 +3,7 @@
 // Date: 2025
 
 import api from './api';
+import toast from 'react-hot-toast';
 
 /**
  * Base configuration
@@ -390,10 +391,10 @@ function ImageGallery() {
       setSelectedImage(null);
       setRegeneratePrompt('');
       
-      alert('Image regenerated successfully!');
+      toast.success('Image regenerated successfully!');
     } catch (error) {
       console.error('Error regenerating:', error);
-      alert('Failed to regenerate image');
+      toast.error('Failed to regenerate image');
     }
   };
 

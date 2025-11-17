@@ -4,6 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --background: #ffffff;
+  --foreground: #171717;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -27,16 +29,14 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.75rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
 .dark {
@@ -272,5 +272,110 @@
       transform: scale(1);
       opacity: 1;
     }
+  }
+}
+
+/* === Enhanced Dashboard Styling Layer === */
+@layer components {
+
+  /* Sidebar base */
+  aside {
+    @apply bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300;
+  }
+
+  /* Sidebar Header */
+  .sidebar-header {
+    @apply flex items-center justify-between px-4 h-16 border-b border-sidebar-border bg-sidebar/80 backdrop-blur-sm;
+  }
+
+  /* Sidebar Logo */
+  .sidebar-logo {
+    @apply flex items-center gap-3;
+  }
+
+  .sidebar-logo-text {
+    @apply text-lg font-semibold bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent;
+  }
+
+  /* Sidebar Nav Section */
+  .sidebar-nav {
+    @apply flex-1 overflow-y-auto p-4 space-y-2;
+  }
+
+  /* Sidebar NavItem */
+  .sidebar-item {
+    @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300;
+  }
+
+  .sidebar-item:hover {
+    @apply bg-sidebar-accent/40 text-sidebar-accent-foreground;
+  }
+
+  .sidebar-item-active {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-inner;
+  }
+
+  /* Dropdown Parent */
+  .sidebar-dropdown {
+    @apply w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300;
+  }
+
+  .sidebar-dropdown:hover {
+    @apply bg-sidebar-accent/40 text-sidebar-accent-foreground;
+  }
+
+  .sidebar-dropdown-active {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-inner;
+  }
+
+  /* Dropdown Children */
+  .sidebar-subitem {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-300 ml-4;
+  }
+
+  .sidebar-subitem:hover {
+    @apply bg-sidebar-accent/40 text-sidebar-accent-foreground translate-x-1;
+  }
+
+  .sidebar-subitem-active {
+    @apply bg-sidebar-accent/80 text-sidebar-accent-foreground font-semibold translate-x-1;
+  }
+
+  /* Footer Section */
+  .sidebar-footer {
+    @apply border-t border-sidebar-border p-4 bg-sidebar/60 backdrop-blur-sm;
+  }
+
+  /* Create Button */
+  .create-btn {
+    @apply w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-semibold py-3 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+
+  .create-btn-collapsed {
+    @apply p-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:scale-105 transition-all duration-300;
+  }
+
+  /* User Avatar */
+  .user-avatar {
+    @apply w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-blue-500 text-white font-bold text-lg shadow-md;
+  }
+
+  /* Text animations */
+  .smooth-transition {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* Glow effect */
+  .gradient-primary {
+    background: linear-gradient(135deg, #6d28d9, #3b82f6);
+  }
+
+  /* Sidebar collapsed width behavior */
+  .sidebar-collapsed {
+    @apply w-16;
+  }
+
+  .sidebar-expanded {
+    @apply w-64;
   }
 }

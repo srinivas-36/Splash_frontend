@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Sparkles, Upload, Award, Zap, Loader2, CheckCircle, AlertCircle, X, Download, RefreshCw } from "lucide-react"
+import { ChevronLeft, Sparkles, Upload, Award, Zap, Loader2, CheckCircle, AlertCircle, X, Download, RefreshCw, Cpu, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { apiService } from "@/lib/api"
 import Image from "next/image"
@@ -212,64 +212,52 @@ export default function CampaignForm() {
                 {/* Enhanced Header */}
                 <div className="mb-12">
                     <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-lg">
+                        <div className="p-3 bg-[#7753ff] rounded-2xl shadow-lg">
                             <Award className="w-8 h-8 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-[#1a1a1a] to-purple-600 bg-clip-text text-transparent">
+                            <h1 className="text-4xl font-bold text-[#7753ff]">
                                 Campaign Shots
                             </h1>
                             <p className="text-[#737373] mt-2">Create stunning marketing visuals with AI-powered campaign shots</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-full w-fit border border-purple-200">
-                        <Award className="w-4 h-4 text-purple-600" />
-                        <span className="text-sm font-medium text-purple-600">Premium Feature</span>
+
+                    {/* Tabs */}
+                    <div className="flex gap-4 mt-6">
+                        <button
+                            onClick={() => setFormData((prev) => ({ ...prev, modelType: "ai_model" }))}
+                            className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${formData.modelType === "ai_model"
+                                ? "bg-white/90 backdrop-blur-md text-[#7753ff] shadow-[0_8px_32px_0_rgba(119,83,255,0.3)] border border-white/20"
+                                : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 border border-gray-200/50 shadow-sm"
+                                }`}
+                        >
+                            <Cpu className="w-5 h-5" />
+                            AI Model
+                        </button>
+                        <button
+                            onClick={() => setFormData((prev) => ({ ...prev, modelType: "real_model" }))}
+                            className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${formData.modelType === "real_model"
+                                ? "bg-white/90 backdrop-blur-md text-[#7753ff] shadow-[0_8px_32px_0_rgba(119,83,255,0.3)] border border-white/20"
+                                : "bg-white/60 backdrop-blur-sm text-gray-700 hover:bg-white/80 border border-gray-200/50 shadow-sm"
+                                }`}
+                        >
+                            <Users className="w-5 h-5" />
+                            Real Model
+                        </button>
                     </div>
                 </div>
 
                 {/* Form and Result Container */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className={`grid grid-cols-1 gap-8 transition-all duration-500 ${result ? 'lg:grid-cols-[4fr_6fr]' : 'lg:grid-cols-[7fr_3fr]'}`}>
                     {/* Form */}
                     <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20">
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Model Type Selection */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"></div>
-                                    Model Type<span className="text-red-500 ml-1">*</span>
-                                </label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData((prev) => ({ ...prev, modelType: "ai_model" }))}
-                                        className={`p-4 rounded-xl border-2 transition-all ${formData.modelType === "ai_model"
-                                            ? "border-purple-600 bg-purple-50"
-                                            : "border-gray-200 hover:border-purple-300"
-                                            }`}
-                                    >
-                                        <p className="font-semibold text-gray-700">AI Model</p>
-                                        <p className="text-xs text-gray-500 mt-1">Generate AI model</p>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData((prev) => ({ ...prev, modelType: "real_model" }))}
-                                        className={`p-4 rounded-xl border-2 transition-all ${formData.modelType === "real_model"
-                                            ? "border-purple-600 bg-purple-50"
-                                            : "border-gray-200 hover:border-purple-300"
-                                            }`}
-                                    >
-                                        <p className="font-semibold text-gray-700">Real Model</p>
-                                        <p className="text-xs text-gray-500 mt-1">Upload your model</p>
-                                    </button>
-                                </div>
-                            </div>
-
                             {/* Model Image (if real_model) */}
                             {formData.modelType === "real_model" && (
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"></div>
+                                        <div className="w-2 h-2 bg-[#7753ff] rounded-full"></div>
                                         Model Image<span className="text-red-500 ml-1">*</span>
                                     </label>
                                     <div
@@ -289,7 +277,7 @@ export default function CampaignForm() {
                                             </div>
                                         ) : (
                                             <div className="flex flex-col items-center justify-center gap-3 text-center">
-                                                <Upload className="w-8 h-8 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                                                <Upload className="w-8 h-8 text-gray-400 group-hover:text-[#7753ff] transition-colors" />
                                                 <p className="text-sm text-gray-500">Upload model image</p>
                                             </div>
                                         )}
@@ -300,7 +288,7 @@ export default function CampaignForm() {
                             {/* Ornament Images */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"></div>
+                                    <div className="w-2 h-2 bg-[#7753ff] rounded-full"></div>
                                     Ornament Images<span className="text-red-500 ml-1">*</span>
                                 </label>
                                 <div
@@ -343,7 +331,7 @@ export default function CampaignForm() {
                             {/* Theme Images */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"></div>
+                                    <div className="w-2 h-2 bg-[#7753ff] rounded-full"></div>
                                     Theme/Style Images (Optional)
                                 </label>
                                 <div
@@ -386,14 +374,14 @@ export default function CampaignForm() {
                             {/* Campaign Instructions */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-purple-600" />
+                                    <Sparkles className="w-4 h-4 text-[#7753ff]" />
                                     Campaign Instructions (Optional)
                                 </label>
                                 <textarea
                                     value={formData.prompt}
                                     onChange={(e) => setFormData((prev) => ({ ...prev, prompt: e.target.value }))}
                                     placeholder="Add specific instructions for your campaign shot..."
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none shadow-sm"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#7753ff] focus:border-transparent resize-none shadow-sm"
                                     rows="3"
                                 />
                             </div>
@@ -411,7 +399,7 @@ export default function CampaignForm() {
                                 <button
                                     type="button"
                                     onClick={() => router.back()}
-                                    className="flex items-center gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors group"
+                                    className="flex items-center gap-2 text-[#7753ff] font-semibold hover:text-[#6a47e6] transition-colors group"
                                 >
                                     <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
                                     Back
@@ -419,7 +407,7 @@ export default function CampaignForm() {
                                 <Button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl flex items-center gap-3 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="bg-[#7753ff] hover:bg-[#6a47e6] text-white px-8 py-3 rounded-xl flex items-center gap-3 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? (
                                         <>
@@ -440,18 +428,18 @@ export default function CampaignForm() {
                     {/* Result Preview */}
                     <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20">
                         <h3 className="text-2xl font-bold text-[#1a1a1a] mb-6 flex items-center gap-2">
-                            <CheckCircle className="w-6 h-6 text-purple-600" />
+                            <CheckCircle className="w-6 h-6 text-[#7753ff]" />
                             Campaign Shot Preview
                         </h3>
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center h-[600px] text-center">
-                                <Loader2 className="w-16 h-16 text-purple-600 animate-spin mb-4" />
+                                <Loader2 className="w-16 h-16 text-[#7753ff] animate-spin mb-4" />
                                 <p className="text-[#737373] text-lg">Creating your campaign shot...</p>
                                 <p className="text-[#737373] text-sm mt-2">This may take up to 45 seconds</p>
                             </div>
                         ) : result ? (
                             <div className="space-y-6">
-                                <div className="relative w-full h-[550px] rounded-2xl overflow-hidden border-2 border-purple-200">
+                                <div className="relative w-full h-[550px] rounded-2xl overflow-hidden border-2 border-[#7753ff]/20">
                                     <Image
                                         src={result.generated_image_url}
                                         alt="Campaign Shot"
@@ -471,14 +459,14 @@ export default function CampaignForm() {
                                             <a
                                                 href={result.generated_image_url}
                                                 download
-                                                className="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold text-center hover:scale-105 transition-all flex items-center justify-center gap-2"
+                                                className="px-4 py-3 bg-[#7753ff] text-white rounded-xl font-semibold text-center hover:scale-105 transition-all flex items-center justify-center gap-2"
                                             >
                                                 <Download size={16} />
                                                 Download
                                             </a>
                                             <button
                                                 onClick={handleRegenerate}
-                                                className="px-4 py-3 border-2 border-purple-600 text-purple-600 rounded-xl font-semibold hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                                                className="px-4 py-3 border-2 border-[#7753ff] text-[#7753ff] hover:bg-[#7753ff]/10 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
                                             >
                                                 <RefreshCw size={16} />
                                                 Regenerate
@@ -514,8 +502,8 @@ export default function CampaignForm() {
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-[600px] text-center">
-                                <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mb-4">
-                                    <Award className="w-12 h-12 text-purple-600" />
+                                <div className="w-24 h-24 bg-[#7753ff]/10 rounded-full flex items-center justify-center mb-4">
+                                    <Award className="w-12 h-12 text-[#7753ff]" />
                                 </div>
                                 <p className="text-[#737373] text-lg">Your campaign shot will appear here</p>
                                 <p className="text-[#737373] text-sm mt-2">Upload ornaments and configure settings to start</p>
@@ -533,7 +521,7 @@ export default function CampaignForm() {
                         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-3xl">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl">
+                                    <div className="p-2 bg-[#7753ff] rounded-xl">
                                         <RefreshCw className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
@@ -577,14 +565,14 @@ export default function CampaignForm() {
                             {/* New Prompt Input */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-purple-600" />
+                                    <Sparkles className="w-4 h-4 text-[#7753ff]" />
                                     What would you like to change?
                                 </label>
                                 <textarea
                                     value={regenerateModal.prompt}
                                     onChange={(e) => setRegenerateModal(prev => ({ ...prev, prompt: e.target.value }))}
                                     placeholder="E.g., 'Add more lighting', 'Make it more vibrant', 'Change the background color'..."
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#7753ff] focus:border-transparent resize-none"
                                     rows="4"
                                     disabled={regenerateModal.loading}
                                 />
@@ -613,7 +601,7 @@ export default function CampaignForm() {
                                 <button
                                     onClick={submitRegenerate}
                                     disabled={regenerateModal.loading || !regenerateModal.prompt.trim()}
-                                    className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                                    className="flex-1 px-6 py-3 bg-[#7753ff] text-white rounded-xl font-semibold hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
                                 >
                                     {regenerateModal.loading ? (
                                         <>

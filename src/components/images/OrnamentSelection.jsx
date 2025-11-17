@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ChevronDown, Ruler, Sparkles } from "lucide-react"
+import { getOrnamentFittingRules } from "@/lib/ornamentRules"
 
 const ORNAMENT_TYPES = [
     // Necklaces
@@ -351,6 +352,10 @@ export function OrnamentSelection({
         return measurements[measurementId] || ""
     }
 
+    const getFittingRules = (ornamentType) => {
+        return getOrnamentFittingRules(ornamentType)
+    }
+
     return (
         <div className={`space-y-4 ${className}`}>
             {/* Ornament Type Selection */}
@@ -429,6 +434,24 @@ export function OrnamentSelection({
                     <p className="text-xs text-gray-500 mt-2">
                         💡 Providing accurate measurements helps generate more realistic images
                     </p>
+                </div>
+            )}
+
+            {/* Fitting Rules Display */}
+            {selectedOrnament && (
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-600" />
+                        Fitting Guidelines
+                    </label>
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                            {getFittingRules(selectedOrnament.id)}
+                        </p>
+                        <p className="text-xs text-purple-600 mt-2 font-medium">
+                            ✨ These guidelines will be automatically applied to ensure realistic ornament fitting
+                        </p>
+                    </div>
                 </div>
             )}
         </div>

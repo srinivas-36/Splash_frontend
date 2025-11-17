@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Download, Edit2, Trash2, CheckCircle, Clock } from "lucide-react"
 import { apiService } from "@/lib/api"
+import toast from "react-hot-toast"
 
 export function Header({ project, onProjectUpdate }) {
     const [updating, setUpdating] = useState(false)
@@ -35,7 +36,7 @@ export function Header({ project, onProjectUpdate }) {
             }
         } catch (error) {
             console.error("Error updating project status:", error)
-            alert("Failed to update project status. Please try again.")
+            toast.error("Failed to update project status. Please try again.")
         } finally {
             setUpdating(false)
         }

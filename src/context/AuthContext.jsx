@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiService } from "@/lib/api";
-// import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 
 const AuthContext = createContext(null);
 
@@ -37,13 +37,13 @@ export function AuthProvider({ children }) {
                 setUser({
                     email: data.user.email,
                     role: data.user.role,
-                    sub_role: data.user.sub_role,
+
                 });
 
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("user", JSON.stringify(data.user));
 
-                // toast.success("Login successful");
+                toast.success("Login successful");
                 router.push("/dashboard");
             } else {
                 toast.error("Invalid login response");
@@ -58,12 +58,14 @@ export function AuthProvider({ children }) {
 
     // LOGOUT function
     const logout = () => {
+        // Clear token and user first
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setToken(null);
         setUser(null);
+        toast.success("Logged out successfully");
+        // Navigate to login page
         router.push("/login");
-        // toast.success("Logged out successfully");
     };
 
     // Context value (only provide once token & user are loaded)

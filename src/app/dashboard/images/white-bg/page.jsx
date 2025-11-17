@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { apiService } from "@/lib/api"
 import Image from "next/image"
 import { useAuth } from "@/context/AuthContext"
+import toast from "react-hot-toast"
 
 const PlainBackgroundForm = () => {
     const router = useRouter()
@@ -108,7 +109,7 @@ const PlainBackgroundForm = () => {
                     error: null
                 })
 
-                alert('Image regenerated successfully!')
+                toast.success('Image regenerated successfully!')
             } else {
                 throw new Error(response.error || 'Regeneration failed')
             }

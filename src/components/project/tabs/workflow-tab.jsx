@@ -34,6 +34,18 @@ export function WorkflowTab({ project }) {
     // State for sequential display logic
     const [suggestionsRequested, setSuggestionsRequested] = useState(false)
 
+    // State to track which steps have been saved
+    // Step 1 is always accessible, but not necessarily saved
+    const [savedSteps, setSavedSteps] = useState(new Set())
+
+    // State to hold current form data from BriefAndConcept
+    const [briefFormData, setBriefFormData] = useState({
+        description: "",
+        targetAudience: "",
+        campaignSeason: "",
+        hasDescription: false
+    })
+
     // State to hold current selections
     const [currentSelections, setCurrentSelections] = useState({
         themes: [],
@@ -55,13 +67,16 @@ export function WorkflowTab({ project }) {
         colors: []
     })
 
+    // State to hold selected model from ModelSelectionSection
+    const [selectedModel, setSelectedModel] = useState(null)
+
     // Memoized callback for global instructions change
     const handleGlobalInstructionsChange = useCallback((instructions) => {
         setCurrentSelections(prev => ({ ...prev, globalInstructions: instructions }))
     }, [])
 
     // Handlers for sequential display logic
-    const handleRequestSuggestions = async (description) => {
+    const handleRequestSuggestions = async (description, targetAudience = null, campaignSeason = null) => {
         if (!description || !project?.id) {
             setError('Please enter a description first')
             return
@@ -77,7 +92,9 @@ export function WorkflowTab({ project }) {
             const response = await apiService.updateCollectionDescription(
                 project.id,
                 description,
-                null
+                null,
+                targetAudience,
+                campaignSeason
             )
 
             if (response.success && response.collection) {
@@ -85,6 +102,14 @@ export function WorkflowTab({ project }) {
                 setCollectionData(response.collection)
                 setSuccessMessage('AI suggestions updated successfully!')
                 console.log('AI suggestions generated/updated successfully:', response.collection.items?.[0])
+
+                // Mark step 1 as saved only after successful save
+                // Step 1 is saved when description, targetAudience, and campaignSeason are saved
+                // This will automatically unlock step 2 via isStepUnlocked
+                setSavedSteps(prev => new Set([...prev, 1]))
+
+                // Navigate to step 2 (Moodboard Setup) after generating suggestions
+                setActiveStep(2)
 
                 // Clear success message after 3 seconds
                 setTimeout(() => setSuccessMessage(null), 3000)
@@ -104,27 +129,85 @@ export function WorkflowTab({ project }) {
     console.log("suggestionsRequested", suggestionsRequested)
     useEffect(() => {
         const fetchCollectionData = async () => {
-            if (project?.collection?.id) {
+            if (project?.collection?.id && token) {
                 try {
                     setLoading(true)
                     const data = await apiService.getCollection(project.collection.id, token)
                     setCollectionData(data)
 
-                    // Check if we have suggestions already generated
-                    if (data.items && data.items.length > 0) {
-                        const item = data.items[0]
-                        const hasSuggestions = (
-                            (item.suggested_themes && item.suggested_themes.length > 0) ||
-                            (item.suggested_backgrounds && item.suggested_backgrounds.length > 0) ||
-                            (item.suggested_colors && item.suggested_colors.length > 0)
-                        )
-                        if (hasSuggestions) {
-                            setSuggestionsRequested(true)
+                    // Initialize saved steps based on backend data
+                    // Only add steps that are actually saved to the backend
+                    const newSavedSteps = new Set()
+
+                    // Check if step 1 is saved (has description, targetAudience, and campaignSeason saved to backend)
+                    // Step 2 unlocks ONLY when step 1 is fully saved to backend
+                    // All three fields must be saved (description is required, targetAudience and campaignSeason are saved when provided)
+                    const hasDescription = data.description && data.description.trim()
+                    const hasTargetAudience = data.target_audience !== undefined && data.target_audience !== null
+                    const hasCampaignSeason = data.campaign_season !== undefined && data.campaign_season !== null
+                    const step1Saved = hasDescription && hasTargetAudience && hasCampaignSeason
+
+                    if (step1Saved) {
+                        newSavedSteps.add(1) // Step 1 is saved - this will unlock step 2 via isStepUnlocked
+
+                        // Check if we have suggestions already generated
+                        if (data.items && data.items.length > 0) {
+                            const item = data.items[0]
+                            const hasSuggestions = (
+                                (item.suggested_themes && item.suggested_themes.length > 0) ||
+                                (item.suggested_backgrounds && item.suggested_backgrounds.length > 0) ||
+                                (item.suggested_colors && item.suggested_colors.length > 0)
+                            )
+                            if (hasSuggestions) {
+                                setSuggestionsRequested(true)
+                            }
                         }
                     }
+
+                    // Check if step 2 is saved (has selections saved to backend)
+                    // Step 3 unlocks only when step 2 is fully saved
+                    if (data.items && data.items.length > 0) {
+                        const item = data.items[0]
+                        const hasSelections = (
+                            (item.selected_themes && item.selected_themes.length > 0) ||
+                            (item.selected_backgrounds && item.selected_backgrounds.length > 0) ||
+                            (item.selected_colors && item.selected_colors.length > 0) ||
+                            (item.global_instructions && item.global_instructions.trim())
+                        )
+                        if (hasSelections) {
+                            newSavedSteps.add(2) // Step 2 is saved - this will unlock step 3 via isStepUnlocked
+                        }
+                    }
+
+                    // Check if step 3 is saved (has models saved to backend)
+                    // Step 4 unlocks only when step 3 is fully saved
+                    if (data.items && data.items.length > 0) {
+                        const item = data.items[0]
+                        if (item.selected_model || (item.uploaded_models && item.uploaded_models.length > 0)) {
+                            newSavedSteps.add(3) // Step 3 is saved - this will unlock step 4 via isStepUnlocked
+                            // Initialize selectedModel from backend if it exists
+                            if (item.selected_model) {
+                                setSelectedModel(item.selected_model)
+                            }
+                        }
+                    }
+
+                    // Check if step 4 is saved (has products saved to backend)
+                    // Step 5 unlocks only when step 4 is fully saved
+                    if (data.items && data.items.length > 0) {
+                        const item = data.items[0]
+                        if (item.product_images && item.product_images.length > 0) {
+                            newSavedSteps.add(4) // Step 4 is saved - this will unlock step 5 via isStepUnlocked
+                        }
+                    }
+
+                    setSavedSteps(newSavedSteps)
                 } catch (err) {
-                    console.error('Error fetching collection:', err)
-                    setError(err.message)
+                    // Don't set error for 401 (unauthorized) - user might be logging out
+                    if (err.message && !err.message.includes('401')) {
+                        console.error('Error fetching collection:', err)
+                        setError(err.message)
+                    }
                 } finally {
                     setLoading(false)
                 }
@@ -132,7 +215,7 @@ export function WorkflowTab({ project }) {
         }
 
         fetchCollectionData()
-    }, [project?.collection?.id])
+    }, [project?.collection?.id, token])
 
     const handleStepSave = async (stepData) => {
         try {
@@ -142,7 +225,21 @@ export function WorkflowTab({ project }) {
 
             switch (activeStep) {
                 case 1:
-                    // Save selections for themes, backgrounds, poses, locations, and colors
+                    // Brief & Concept step - automatically request suggestions when Save and Continue is clicked
+                    if (briefFormData.hasDescription && briefFormData.description.trim()) {
+                        await handleRequestSuggestions(
+                            briefFormData.description,
+                            briefFormData.targetAudience || null,
+                            briefFormData.campaignSeason || null
+                        )
+                        // handleRequestSuggestions already navigates to step 2, so we don't need to do it here
+                        return
+                    } else {
+                        setError('Please enter a project description first')
+                        return
+                    }
+                case 2:
+                    // Moodboard setup step - save selections for themes, backgrounds, poses, locations, and colors
                     // Also generates prompts using Gemini AI
                     if (project?.id && collectionData?.id) {
                         const response = await apiService.updateCollectionSelections(
@@ -158,6 +255,9 @@ export function WorkflowTab({ project }) {
 
                             setSuccessMessage(response.message || 'Selections saved and prompts generated successfully!')
 
+                            // Mark step 2 as saved - this will automatically unlock step 3 via isStepUnlocked
+                            setSavedSteps(prev => new Set([...prev, 2]))
+
                             // Refresh collection data after saving
                             const updatedData = await apiService.getCollection(collectionData.id, token)
                             setCollectionData(updatedData)
@@ -167,26 +267,60 @@ export function WorkflowTab({ project }) {
                         }
                     }
                     break
-                case 2:
-                    // Model generation step - refresh data if models were saved
-                    if (stepData.modelsSaved && collectionData?.id) {
-                        console.log("✅ Model selected in WorkflowTab:", stepData.selectedModel)
+                case 3:
+                    // Model selection step - save the selected model to backend
+                    if (selectedModel && collectionData?.id) {
+                        try {
+                            setLoading(true)
+                            const response = await apiService.selectModel(
+                                collectionData.id,
+                                selectedModel.type,
+                                selectedModel
+                            )
+
+                            if (response.success) {
+                                console.log("✅ Model saved in WorkflowTab:", response.selected_model)
+                                // Mark step 3 as saved - this will automatically unlock step 4 via isStepUnlocked
+                                setSavedSteps(prev => new Set([...prev, 3]))
+                                const updatedData = await apiService.getCollection(collectionData.id, token)
+                                setCollectionData(updatedData)
+                                setSuccessMessage('Model selected successfully!')
+                                setTimeout(() => setSuccessMessage(null), 3000)
+                            } else {
+                                throw new Error(response.error || 'Failed to save model')
+                            }
+                        } catch (err) {
+                            console.error('Error saving model:', err)
+                            setError(err.message || 'Failed to save model')
+                            throw err // Re-throw to prevent navigation
+                        } finally {
+                            setLoading(false)
+                        }
+                    } else if (stepData.modelsSaved && collectionData?.id) {
+                        // Handle case when AI models are saved (from handleSaveAIModels)
+                        setSavedSteps(prev => new Set([...prev, 3]))
                         const updatedData = await apiService.getCollection(collectionData.id, token)
                         setCollectionData(updatedData)
                         setSuccessMessage('Models saved successfully!')
                         setTimeout(() => setSuccessMessage(null), 3000)
+                    } else if (!selectedModel) {
+                        setError('Please select a model before continuing')
+                        throw new Error('No model selected')
                     }
                     break
-                case 3:
-                    // Product upload step - refresh data if products were uploaded
+                case 4:
+                    // Product upload step - when products are uploaded, they're already saved to backend
                     if (stepData.productsUploaded && collectionData?.id) {
+                        // Mark step 4 as saved - this will automatically unlock step 5 via isStepUnlocked
+                        setSavedSteps(prev => new Set([...prev, 4]))
                         const updatedData = await apiService.getCollection(collectionData.id, token)
                         setCollectionData(updatedData)
                         setSuccessMessage('Products uploaded successfully!')
                         setTimeout(() => setSuccessMessage(null), 3000)
+                        // Don't navigate automatically - let "Save and Continue" button handle navigation
                     }
                     break
-                case 4:
+                case 5:
                     // Image generation step - refresh data if images were generated
                     if (stepData.imagesGenerated && collectionData?.id) {
                         const updatedData = await apiService.getCollection(collectionData.id, token)
@@ -250,16 +384,22 @@ export function WorkflowTab({ project }) {
 
         switch (activeStep) {
             case 1:
+                // Brief & Concept tab
+                return (
+                    <BriefAndConcept
+                        project={project}
+                        collectionData={collectionData}
+                        onSave={handleStepSave}
+                        onRequestSuggestions={handleRequestSuggestions}
+                        suggestionsRequested={suggestionsRequested}
+                        canEdit={canEdit}
+                        onFormDataChange={setBriefFormData}
+                    />
+                )
+            case 2:
+                // Moodboard Setup tab
                 return (
                     <>
-                        <BriefAndConcept
-                            project={project}
-                            collectionData={collectionData}
-                            onSave={handleStepSave}
-                            onRequestSuggestions={handleRequestSuggestions}
-                            suggestionsRequested={suggestionsRequested}
-                            canEdit={canEdit}
-                        />
                         <ThemesAndBackgrounds
                             project={project}
                             collectionData={collectionData}
@@ -289,21 +429,21 @@ export function WorkflowTab({ project }) {
                             canEdit={canEdit}
                             onInstructionsChange={handleGlobalInstructionsChange}
                         />
-                        {/* <GeneratedPromptsDisplay
-                            collectionData={collectionData}
-                        /> */}
                     </>
                 )
-            case 2:
+            case 3:
+                // Model Selection tab
                 return (
                     <ModelSelectionSection
                         project={project}
                         collectionData={collectionData}
                         onSave={handleStepSave}
                         canEdit={canEdit}
+                        onModelSelectionChange={setSelectedModel}
                     />
                 )
-            case 3:
+            case 4:
+                // Products Upload tab
                 return (
                     <ProductUploadPage
                         project={project}
@@ -312,7 +452,8 @@ export function WorkflowTab({ project }) {
                         canEdit={canEdit}
                     />
                 )
-            case 4:
+            case 5:
+                // Generate and Edit tab
                 return (
                     <>
                         <GenerateSection
@@ -334,9 +475,30 @@ export function WorkflowTab({ project }) {
         }
     }
 
+    // Function to check if a step is unlocked
+    const isStepUnlocked = (stepNumber) => {
+        if (stepNumber === 1) return true // Step 1 is always accessible
+        // A step is unlocked if the previous step is saved
+        // Step 2 unlocks only when step 1 is saved
+        // Step 3 unlocks only when step 2 is saved, etc.
+        return savedSteps.has(stepNumber - 1)
+    }
+
+    // Function to handle step click with locking logic
+    const handleStepClick = (stepNumber) => {
+        if (isStepUnlocked(stepNumber)) {
+            setActiveStep(stepNumber)
+        }
+    }
+
     return (
         <div className="space-y-8">
-            <WorkflowSteps activeStep={activeStep} setActiveStep={setActiveStep} />
+            <WorkflowSteps
+                activeStep={activeStep}
+                setActiveStep={handleStepClick}
+                savedSteps={savedSteps}
+                isStepUnlocked={isStepUnlocked}
+            />
 
             {renderStepContent()}
 
@@ -354,22 +516,72 @@ export function WorkflowTab({ project }) {
                 <Button
                     className="bg-[#884cff] hover:bg-[#7a3ff0] text-white px-8"
                     onClick={async () => {
-                        await handleStepSave({})
-                        if (!error) {
-                            setActiveStep(prev => Math.min(prev + 1, 4))
+                        try {
+                            setError(null) // Clear any previous errors
+                            await handleStepSave({})
+                            // Only move to next step if we're not on step 1 (step 1 handles navigation in handleRequestSuggestions)
+                            if (!error && activeStep !== 1) {
+                                // For step 3, the model is saved in handleStepSave, so just navigate
+                                if (activeStep === 3 && collectionData?.id) {
+                                    try {
+                                        const updatedData = await apiService.getCollection(collectionData.id, token)
+                                        setCollectionData(updatedData)
+                                        const item = updatedData.items?.[0]
+                                        const hasModel = item?.selected_model || (item?.uploaded_models && item.uploaded_models.length > 0)
+                                        if (hasModel) {
+                                            // Step 3 is saved, mark it and navigate to step 4
+                                            setSavedSteps(prev => new Set([...prev, 3]))
+                                            setActiveStep(4)
+                                            return
+                                        }
+                                    } catch (err) {
+                                        console.error('Error checking step 3:', err)
+                                    }
+                                }
+                                if (activeStep === 4 && collectionData?.id) {
+                                    try {
+                                        const updatedData = await apiService.getCollection(collectionData.id, token)
+                                        setCollectionData(updatedData)
+                                        const item = updatedData.items?.[0]
+                                        const hasProducts = item?.product_images && item.product_images.length > 0
+                                        if (hasProducts) {
+                                            // Step 4 is saved, mark it and navigate to step 5
+                                            setSavedSteps(prev => new Set([...prev, 4]))
+                                            setActiveStep(5)
+                                            return
+                                        }
+                                    } catch (err) {
+                                        console.error('Error checking step 4:', err)
+                                    }
+                                }
+                                // For other steps, navigate to next unlocked step
+                                const nextStep = Math.min(activeStep + 1, 5)
+                                if (isStepUnlocked(nextStep)) {
+                                    setActiveStep(nextStep)
+                                }
+                            }
+                        } catch (err) {
+                            // Error is already set in handleStepSave, just log it
+                            console.error('Error in Save and Continue:', err)
                         }
                     }}
                     disabled={loading || !canEdit}
                     title={canEdit ? "" : "You need Editor or Owner role to save changes"}
                 >
-                    {loading ? (activeStep === 1 ? 'Generating Prompts...' : 'Saving...') : 'Save and Continue'}
+                    {loading ? (activeStep === 1 ? 'Generating Suggestions...' : 'Saving...') : 'Save and Continue'}
                 </Button>
 
                 <Button
                     variant="ghost"
                     className="text-[#884cff]"
-                    onClick={() => setActiveStep(prev => Math.min(prev + 1, 4))}
-                    disabled={loading}
+                    onClick={() => {
+                        const nextStep = Math.min(activeStep + 1, 5)
+                        if (isStepUnlocked(nextStep)) {
+                            setActiveStep(nextStep)
+                        }
+                    }}
+                    disabled={loading || !isStepUnlocked(Math.min(activeStep + 1, 5))}
+                    title={!isStepUnlocked(Math.min(activeStep + 1, 5)) ? "Complete the current step to unlock the next step" : ""}
                 >
                     Next
                 </Button>

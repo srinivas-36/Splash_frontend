@@ -235,7 +235,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CircleDot, Clock, Calendar, FileText, Image as ImageIcon, Package, User, CheckCircle } from "lucide-react"
+import { CircleDot, Clock, Calendar, FileText, Image as ImageIcon, Package, User, CheckCircle, Palette, MapPin, Camera, Sparkles } from "lucide-react"
 import { ProductImagesDisplay } from "../product-images-display"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
@@ -325,6 +325,33 @@ export default function OverviewTab({ project }) {
 
     const item = collectionData?.items?.[0] || {}
 
+    // Calculate generation status counts
+    const generationStats = {
+        whiteBackground: 0,
+        backgroundReplace: 0,
+        modelImages: 0,
+        campaignImages: 0,
+        regenerated: 0
+    }
+
+    if (item.product_images) {
+        item.product_images.forEach(product => {
+            if (product.generated_images) {
+                product.generated_images.forEach(img => {
+                    if (img.type === 'white_background') generationStats.whiteBackground++
+                    else if (img.type === 'background_replace') generationStats.backgroundReplace++
+                    else if (img.type === 'model_image') generationStats.modelImages++
+                    else if (img.type === 'campaign_image') generationStats.campaignImages++
+
+                    // Count regenerated images
+                    if (img.regenerated_images) {
+                        generationStats.regenerated += img.regenerated_images.length
+                    }
+                })
+            }
+        })
+    }
+
     return (
         <div className="space-y-8">
 
@@ -339,91 +366,215 @@ export default function OverviewTab({ project }) {
                     {/* Created Date */}
                     <InfoCard icon={<Calendar className="w-6 h-6 text-[#884cff]" />} label="Created Date" value={project?.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A'} />
                     {/* Last Modified */}
-                    <InfoCard icon={<Clock className="w-6 h-6 text-[#884cff]" />} label="Last Modified" value={project?.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A'} />
+                    <InfoCard icon={<Clock className="w-6 h-6 text-[#884cff]" />} label="Latest Updated" value={project?.updated_at ? new Date(project.updated_at).toLocaleDateString() : (project?.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A')} />
                 </div>
 
-                {project?.about && <Description label="Project Description" text={project.about} />}
                 {collectionData?.description && <Description label="Collection Description" text={collectionData.description} />}
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-4 gap-6">
-                <StatCard icon={<ImageIcon className="w-5 h-5 text-[#884cff]" />} label="Total Images" value={modelStats.total_generations} />
-                <StatCard icon={<Package className="w-5 h-5 text-[#884cff]" />} label="Products" value={stats.products} />
-                <StatCard icon={<User className="w-5 h-5 text-[#884cff]" />} label="Total Models Used" value={modelStats.total_models_used} />
-                <StatCard icon={<CheckCircle className="w-5 h-5 text-[#884cff]" />} label="Completion" value={`${stats.completion}%`} />
+            {/* Selected Themes, Backgrounds, Poses, Locations, Colors Section */}
+            <div className="bg-white border-2 border-[#e6e6e6] rounded-lg p-8">
+                <h2 className="text-2xl font-bold text-[#1a1a1a] mb-6">Selected Elements</h2>
+
+                <div className="space-y-6">
+                    {/* Themes */}
+                    {(item.selected_themes?.length > 0 || item.uploaded_theme_images?.length > 0) && (
+                        <SelectionSection
+                            title="Themes"
+                            icon={<Sparkles className="w-5 h-5 text-[#884cff]" />}
+                            selected={item.selected_themes || []}
+                            uploadedImages={item.uploaded_theme_images || []}
+                        />
+                    )}
+
+                    {/* Backgrounds */}
+                    {(item.selected_backgrounds?.length > 0 || item.uploaded_background_images?.length > 0) && (
+                        <SelectionSection
+                            title="Backgrounds"
+                            icon={<ImageIcon className="w-5 h-5 text-[#884cff]" />}
+                            selected={item.selected_backgrounds || []}
+                            uploadedImages={item.uploaded_background_images || []}
+                        />
+                    )}
+
+                    {/* Poses */}
+                    {(item.selected_poses?.length > 0 || item.uploaded_pose_images?.length > 0) && (
+                        <SelectionSection
+                            title="Poses"
+                            icon={<Camera className="w-5 h-5 text-[#884cff]" />}
+                            selected={item.selected_poses || []}
+                            uploadedImages={item.uploaded_pose_images || []}
+                        />
+                    )}
+
+                    {/* Locations */}
+                    {(item.selected_locations?.length > 0 || item.uploaded_location_images?.length > 0) && (
+                        <SelectionSection
+                            title="Locations"
+                            icon={<MapPin className="w-5 h-5 text-[#884cff]" />}
+                            selected={item.selected_locations || []}
+                            uploadedImages={item.uploaded_location_images || []}
+                        />
+                    )}
+
+                    {/* Colors */}
+                    {(item.selected_colors?.length > 0 || item.picked_colors?.length > 0 || item.uploaded_color_images?.length > 0) && (
+                        <div className="border-t border-[#e6e6e6] pt-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-[#884cff]/10 rounded-lg flex items-center justify-center">
+                                    <Palette className="w-5 h-5 text-[#884cff]" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-[#1a1a1a]">Colors</h3>
+                            </div>
+
+                            {/* Selected Colors */}
+                            {item.selected_colors?.length > 0 && (
+                                <div className="mb-4">
+                                    <p className="text-sm text-[#708090] mb-2">Selected Colors:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {item.selected_colors.map((color, idx) => (
+                                            <span key={idx} className="px-3 py-1 bg-[#884cff]/10 text-[#884cff] rounded-full text-sm">
+                                                {color}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Picked Colors */}
+                            {item.picked_colors?.length > 0 && (
+                                <div className="mb-4">
+                                    <p className="text-sm text-[#708090] mb-2">Picked Colors:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {item.picked_colors.map((color, idx) => (
+                                            <div key={idx} className="flex items-center gap-2">
+                                                <div
+                                                    className="w-8 h-8 rounded-full border-2 border-gray-300"
+                                                    style={{ backgroundColor: color }}
+                                                    title={color}
+                                                />
+                                                <span className="text-xs text-[#708090]">{color}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Uploaded Color Images */}
+                            {item.uploaded_color_images?.length > 0 && (
+                                <div>
+                                    <p className="text-sm text-[#708090] mb-2">Uploaded Color Images:</p>
+                                    <div className="grid grid-cols-4 gap-4">
+                                        {item.uploaded_color_images.map((img, idx) => (
+                                            <img
+                                                key={idx}
+                                                src={img.cloud_url || img.local_url}
+                                                alt={`Color ${idx + 1}`}
+                                                className="w-full h-24 object-cover rounded-lg border border-[#e6e6e6]"
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Global Instructions */}
+                    {item.global_instructions && (
+                        <div className="border-t border-[#e6e6e6] pt-6">
+                            <h3 className="text-lg font-semibold text-[#1a1a1a] mb-2">Global Instructions</h3>
+                            <p className="text-[#1a1a1a] bg-gray-50 p-4 rounded-lg">{item.global_instructions}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Two Stat Cards: Model Selection and Products */}
+            <div className="grid grid-cols-2 gap-6">
+                {/* Model Selection Stat Card */}
+                <div className="bg-white border-2 border-[#e6e6e6] rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-[#884cff]/10 rounded-lg flex items-center justify-center">
+                            <User className="w-5 h-5 text-[#884cff]" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-[#1a1a1a]">Model Selection</h3>
+                    </div>
+                    {item.selected_model ? (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <img
+                                    src={item.selected_model.cloud || item.selected_model.local}
+                                    alt="Selected Model"
+                                    className="w-20 h-20 object-cover rounded-lg border-2 border-[#884cff]"
+                                />
+                                <div>
+                                    <p className="text-sm font-medium text-[#1a1a1a] capitalize">
+                                        {item.selected_model.type === 'ai' ? 'AI Model' : 'Real Model'}
+                                    </p>
+                                    <p className="text-xs text-[#708090]">
+                                        {item.selected_model.type === 'ai' ? 'Generated' : 'Uploaded'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-[#708090]">No model selected</p>
+                    )}
+                </div>
+
+                {/* Products Stat Card */}
+                <div className="bg-white border-2 border-[#e6e6e6] rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-[#884cff]/10 rounded-lg flex items-center justify-center">
+                            <Package className="w-5 h-5 text-[#884cff]" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-[#1a1a1a]">Products</h3>
+                    </div>
+                    <p className="text-3xl font-bold text-[#884cff] mb-2">{stats.products}</p>
+                    <p className="text-sm text-[#708090]">Product images uploaded</p>
+                </div>
+            </div>
+
+            {/* Generation Status Section */}
+            <div className="bg-white border-2 border-[#e6e6e6] rounded-lg p-8">
+                <h2 className="text-2xl font-bold text-[#1a1a1a] mb-6">Generation Status</h2>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <GenerationStatCard
+                        label="Plain/White Background"
+                        value={generationStats.whiteBackground}
+                        icon={<ImageIcon className="w-5 h-5 text-[#884cff]" />}
+                    />
+                    <GenerationStatCard
+                        label="Background Replace"
+                        value={generationStats.backgroundReplace}
+                        icon={<ImageIcon className="w-5 h-5 text-[#884cff]" />}
+                    />
+                    <GenerationStatCard
+                        label="Model Images"
+                        value={generationStats.modelImages}
+                        icon={<User className="w-5 h-5 text-[#884cff]" />}
+                    />
+                    <GenerationStatCard
+                        label="Campaign Images"
+                        value={generationStats.campaignImages}
+                        icon={<Camera className="w-5 h-5 text-[#884cff]" />}
+                    />
+                    <GenerationStatCard
+                        label="Regenerated Images"
+                        value={generationStats.regenerated}
+                        icon={<Sparkles className="w-5 h-5 text-[#884cff]" />}
+                    />
+                </div>
             </div>
 
             {/* Model Usage Statistics */}
-            {modelStats.total_models_used > 0 && (
-                <div className="bg-white border-2 border-[#e6e6e6] rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-[#1a1a1a] mb-4">Model Usage Statistics</h3>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-[#884cff]/10 rounded-lg flex items-center justify-center">
-                                    <span className="text-2xl">📊</span>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-[#708090]">Total Generations</p>
-                                    <p className="text-2xl font-bold text-[#884cff]">{modelStats.total_generations}</p>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-sm text-[#708090]">Different Models</p>
-                                <p className="text-2xl font-bold text-[#884cff]">{modelStats.total_models_used}</p>
-                            </div>
-                        </div>
 
-                        {/* Models Breakdown */}
-                        <div>
-                            <p className="text-sm font-medium text-[#708090] mb-3">Models Used:</p>
-                            <div className="grid grid-cols-2 gap-3">
-                                {modelStats.models_breakdown.map((model, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 border border-[#e6e6e6] rounded-lg hover:border-[#884cff] transition-colors">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${model.type === 'ai' ? 'bg-purple-100' : 'bg-green-100'
-                                                }`}>
-                                                <span className="text-sm">{model.type === 'ai' ? '🤖' : '👤'}</span>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-[#1a1a1a] capitalize">
-                                                    {model.type === 'ai' ? 'AI Model' : model.name || 'Real Model'}
-                                                </p>
-                                                <p className="text-xs text-[#708090]">
-                                                    {model.type === 'ai' ? 'Generated' : 'Uploaded'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-lg font-bold text-[#884cff]">{model.usage_count}</p>
-                                            <p className="text-xs text-[#708090]">uses</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Workflow Progress */}
-            <WorkflowProgress
-                steps={[
-                    { label: 'Project Setup', completed: !!collectionData?.description },
-                    { label: 'Model Selection', completed: !!item.selected_model },
-                    { label: 'Product Upload', completed: stats.products > 0 },
-                    { label: 'Image Generation', completed: stats.totalImages > 0 }
-                ]}
-            />
+
 
             {/* Preview of Generated Images */}
-            {stats.totalImages > 0 && (
-                <div>
-                    <h3 className="text-xl font-bold text-[#1a1a1a] mb-4">Generated Images Preview</h3>
-                    <ProductImagesDisplay collectionData={collectionData} showRegenerate={false} />
-                </div>
-            )}
+
         </div>
     )
 }
@@ -474,5 +625,59 @@ const WorkflowProgress = ({ steps }) => (
                 </div>
             ))}
         </div>
+    </div>
+)
+
+const SelectionSection = ({ title, icon, selected, uploadedImages }) => (
+    <div className="border-t border-[#e6e6e6] pt-6 first:border-t-0 first:pt-0">
+        <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-[#884cff]/10 rounded-lg flex items-center justify-center">
+                {icon}
+            </div>
+            <h3 className="text-lg font-semibold text-[#1a1a1a]">{title}</h3>
+        </div>
+
+        {/* Selected Items */}
+        {selected.length > 0 && (
+            <div className="mb-4">
+                <p className="text-sm text-[#708090] mb-2">Selected {title}:</p>
+                <div className="flex flex-wrap gap-2">
+                    {selected.map((item, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-[#884cff]/10 text-[#884cff] rounded-full text-sm">
+                            {item}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        {/* Uploaded Images */}
+        {uploadedImages.length > 0 && (
+            <div>
+                <p className="text-sm text-[#708090] mb-2">Uploaded {title} Images:</p>
+                <div className="grid grid-cols-4 gap-4">
+                    {uploadedImages.map((img, idx) => (
+                        <img
+                            key={idx}
+                            src={img.cloud_url || img.local_url}
+                            alt={`${title} ${idx + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border border-[#e6e6e6]"
+                        />
+                    ))}
+                </div>
+            </div>
+        )}
+    </div>
+)
+
+const GenerationStatCard = ({ label, value, icon }) => (
+    <div className="bg-gray-50 border border-[#e6e6e6] rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 bg-[#884cff]/10 rounded-lg flex items-center justify-center">
+                {icon}
+            </div>
+            <p className="text-2xl font-bold text-[#884cff]">{value}</p>
+        </div>
+        <p className="text-xs text-[#708090]">{label}</p>
     </div>
 )

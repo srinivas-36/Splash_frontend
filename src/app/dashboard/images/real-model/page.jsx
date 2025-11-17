@@ -7,6 +7,7 @@ import { apiService } from "@/lib/api"
 import Image from "next/image"
 import { useAuth } from "@/context/AuthContext"
 import { OrnamentSelection } from "@/components/images/OrnamentSelection"
+import toast from "react-hot-toast"
 export default function RealModelForm() {
     const router = useRouter()
     const [formData, setFormData] = useState({
@@ -90,7 +91,7 @@ export default function RealModelForm() {
                     error: null
                 })
 
-                alert('Image regenerated successfully!')
+                toast.success('Image regenerated successfully!')
             } else {
                 throw new Error(response.error || 'Regeneration failed')
             }

@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { AuthProvider } from "@/context/AuthContext";
+
+import { Topbar } from "@/components/Topbar";
+
 export default function DashboardLayout({ children }) {
     const [collapsed, setCollapsed] = useState(true);
     const [hovered, setHovered] = useState(false);
@@ -28,15 +31,22 @@ export default function DashboardLayout({ children }) {
                 isMobile={isMobile}
             />
 
-            <main
-                className="flex-1 overflow-y-auto p-8 transition-all duration-300" // transition for smooth margin change
-                style={{
-                    marginLeft: `${sidebarWidth}px`,
-                }}
+            <div className="flex-1 flex flex-col">
+                {/* Topbar — reacts to sidebar collapse */}
+                <Topbar collapsed={collapsed && !hovered} />
 
-            >
-                <AuthProvider>  {children} </AuthProvider>
-            </main>
+                {/* Main content below topbar */}
+                <main
+                    className="flex-1 overflow-y-auto p-8 transition-all duration-300 mt-16"
+                    style={{
+                        marginLeft: `${isMobile ? 0 : sidebarWidth}px`,
+                    }}
+                >
+                    <AuthProvider>
+                        {children}
+                    </AuthProvider>
+                </main>
+            </div>
         </div>
     );
 }

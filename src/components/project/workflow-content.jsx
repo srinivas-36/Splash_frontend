@@ -17,25 +17,25 @@ export function WorkflowContent({ project }) {
                     <TabsList className="w-full justify-start rounded-none bg-transparent p-0 h-auto border-b border-[#e6e6e6]">
                         <TabsTrigger
                             value="workflow"
-                            className="rounded-none border-b-2 border-transparent px-6 py-4 data-[state=active]:border-[#884cff] data-[state=active]:bg-[#f0e6ff]"
+                            className="rounded-none cursor-pointer border-b-2 border-transparent px-6 py-4 data-[state=active]:border-[#884cff] data-[state=active]:bg-[#f0e6ff]"
                         >
                             Workflow
                         </TabsTrigger>
                         <TabsTrigger
                             value="overview"
-                            className="rounded-none border-b-2 border-transparent px-6 py-4 data-[state=active]:border-[#884cff] data-[state=active]:bg-[#f0e6ff]"
+                            className="rounded-none cursor-pointer border-b-2 border-transparent px-6 py-4 data-[state=active]:border-[#884cff] data-[state=active]:bg-[#f0e6ff]"
                         >
                             Overview
                         </TabsTrigger>
                         <TabsTrigger
                             value="results"
-                            className="rounded-none border-b-2 border-transparent px-6 py-4 data-[state=active]:border-[#884cff] data-[state=active]:bg-[#f0e6ff]"
+                            className="rounded-none cursor-pointer border-b-2 border-transparent px-6 py-4 data-[state=active]:border-[#884cff] data-[state=active]:bg-[#f0e6ff]"
                         >
                             Results
                         </TabsTrigger>
                         <TabsTrigger
                             value="collaborators"
-                            className="rounded-none border-b-2 border-transparent px-6 py-4 data-[state=active]:border-[#884cff] data-[state=active]:bg-[#f0e6ff]"
+                            className="rounded-none cursor-pointer border-b-2 border-transparent px-6 py-4 data-[state=active]:border-[#884cff] data-[state=active]:bg-[#f0e6ff]"
                         >
                             Collaborators
                         </TabsTrigger>

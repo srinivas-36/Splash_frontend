@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 
-export function GenerateSection({ project, collectionData, onGenerate, canEdit = true }) {
+export function GenerateSection({ project, collectionData, onGenerate, canEdit }) {
     const [generating, setGenerating] = useState(false)
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
@@ -69,7 +69,7 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit =
             setGenerating(false)
         }
     }
-
+    console.log("canEdit", canEdit);
     const hasProducts = collectionData?.items?.[0]?.product_images?.length > 0
     const hasModelSelected = selectedModel !== null
 
