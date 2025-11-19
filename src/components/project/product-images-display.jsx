@@ -136,6 +136,74 @@ export function ProductImagesDisplay({
         }
     }
 
+    const downloadImageAsBlob = async (imageUrl, filename) => {
+        try {
+            // Fetch the image as a blob
+            const response = await fetch(imageUrl, {
+                mode: 'cors',
+                cache: 'no-cache'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch image: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+
+            // Create a blob URL
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            // Create a temporary link element
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = filename;
+            link.style.display = 'none';
+
+            // Append to body, click, and remove
+            document.body.appendChild(link);
+            link.click();
+
+            // Small delay before cleanup to ensure download starts
+            setTimeout(() => {
+                link.remove();
+                window.URL.revokeObjectURL(blobUrl);
+            }, 100);
+        } catch (error) {
+            console.error('Error downloading image:', error);
+            // Fallback: try direct download
+            try {
+                const link = document.createElement("a");
+                link.href = imageUrl;
+                link.download = filename;
+                link.target = '_blank';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => link.remove(), 100);
+            } catch (fallbackError) {
+                console.error('Fallback download also failed:', fallbackError);
+                // Last resort: open in new tab
+                window.open(imageUrl, '_blank');
+            }
+        }
+    };
+
+    const handleDownloadImage = async (imageUrl, imageType, productIndex, imageIndex, versionType = '', versionIndex = null) => {
+        // Generate filename
+        const imageTypeLabel = imageType?.replace(/_/g, '-') || 'generated';
+        let filename = `product-${productIndex}-${imageTypeLabel}-${imageIndex}`;
+        
+        if (versionType === 'regenerated' && versionIndex !== null) {
+            filename += `-regenerated-v${versionIndex + 1}`;
+        } else if (versionType === 'enhanced' && versionIndex !== null) {
+            filename += `-enhanced-v${versionIndex + 1}`;
+        }
+        
+        filename += '.png';
+        
+        await downloadImageAsBlob(imageUrl, filename);
+    }
+
     return (
         <div className="mb-12">
             {/* Header */}
@@ -327,11 +395,28 @@ export function ProductImagesDisplay({
                                                                                 size="sm"
                                                                                 variant="secondary"
                                                                                 className="gap-1 text-xs px-2 py-1 h-auto bg-white/90 backdrop-blur-sm hover:bg-white"
-                                                                                onClick={() => {
-                                                                                    const link = document.createElement("a")
-                                                                                    link.href = imageToShow.cloud_url
-                                                                                    link.download = `product-${productIndex + 1}-${imageToShow.type}.png`
-                                                                                    link.click()
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    // Calculate version index based on current view
+                                                                                    let versionIndex = null;
+                                                                                    if (currentIndex > 0) {
+                                                                                        const regeneratedCount = img.regenerated_images?.length || 0;
+                                                                                        if (currentIndex <= regeneratedCount) {
+                                                                                            // Regenerated image
+                                                                                            versionIndex = currentIndex - 1;
+                                                                                        } else {
+                                                                                            // Enhanced image
+                                                                                            versionIndex = currentIndex - regeneratedCount - 1;
+                                                                                        }
+                                                                                    }
+                                                                                    handleDownloadImage(
+                                                                                        imageToShow.cloud_url,
+                                                                                        img.type || imageToShow.type,
+                                                                                        productIndex + 1,
+                                                                                        imgIndex + 1,
+                                                                                        versionType,
+                                                                                        versionIndex
+                                                                                    );
                                                                                 }}
                                                                             >
                                                                                 <Download className="w-3 h-3" /> Save

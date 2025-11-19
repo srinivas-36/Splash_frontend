@@ -185,7 +185,7 @@ const PlainBackgroundForm = () => {
                 <div className="absolute top-20 right-20 w-60 h-60 bg-gradient-to-r from-[#884cff]/10 to-[#5a2fcf]/10 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="max-w-4xl mx-auto relative z-10">
+            <div className="max-w-6xl mx-auto relative z-10">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-12">
                     <div className="p-3 bg-gradient-to-r from-[#884cff] to-[#5a2fcf] rounded-2xl shadow-lg">
@@ -200,7 +200,7 @@ const PlainBackgroundForm = () => {
                 </div>
 
                 {/* Form and Result Container */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className={`grid grid-cols-1 gap-8 transition-all duration-500 ${result ? 'lg:grid-cols-[4fr_6fr]' : 'lg:grid-cols-[7fr_3fr]'}`}>
                     {/* Form */}
                     <div className="space-y-8 bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20">
                         <form onSubmit={handleSubmit} className="space-y-6">

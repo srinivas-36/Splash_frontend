@@ -2,7 +2,7 @@
 
 import { Check } from "lucide-react"
 
-export function WorkflowSteps({ activeStep, setActiveStep, savedSteps, isStepUnlocked }) {
+export function WorkflowSteps({ activeStep, setActiveStep, savedSteps, isStepUnlocked, isGenerating = false }) {
     const steps = [
         { number: 1, title: "Brief & Concept" },
         { number: 2, title: "Moodboard Setup" },
@@ -12,38 +12,39 @@ export function WorkflowSteps({ activeStep, setActiveStep, savedSteps, isStepUnl
     ]
 
     return (
-        <div className="bg-gray-100 p-6 rounded-lg">
-            <div className="bg-white rounded-lg p-6">
+        <div className="rounded-lg">
+            <div className="rounded-lg p-4">
                 <div className="flex items-center justify-between">
                     {steps.map((step, index) => {
                         const isActive = step.number === activeStep
                         const isCompleted = step.number < activeStep
                         const isUnlocked = isStepUnlocked ? isStepUnlocked(step.number) : true
+                        const canClick = isUnlocked && !isGenerating
 
                         return (
                             <div key={step.number} className="flex items-center flex-1">
                                 <div className="flex flex-col items-center flex-1">
                                     <div
-                                        role={isUnlocked ? "button" : undefined}
-                                        tabIndex={isUnlocked ? 0 : -1}
+                                        role={canClick ? "button" : undefined}
+                                        tabIndex={canClick ? 0 : -1}
                                         className={`flex items-center justify-center w-10 h-10 rounded-full ${isCompleted
-                                                ? "bg-[#7753ff]"
-                                                : isActive
-                                                    ? "bg-[#7753ff] border-2 border-[#a78bfa]"
-                                                    : "bg-gray-200"
-                                            } ${isUnlocked ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                                            ? "bg-[#7753ff]"
+                                            : isActive
+                                                ? "bg-[#7753ff] border-2 border-[#a78bfa]"
+                                                : "bg-gray-200"
+                                            } ${canClick ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
                                         onClick={() => {
-                                            if (isUnlocked) {
+                                            if (canClick) {
                                                 setActiveStep(step.number)
                                             }
                                         }}
                                         onKeyDown={(e) => {
-                                            if (isUnlocked && (e.key === "Enter" || e.key === " ")) {
+                                            if (canClick && (e.key === "Enter" || e.key === " ")) {
                                                 e.preventDefault()
                                                 setActiveStep(step.number)
                                             }
                                         }}
-                                        title={!isUnlocked ? "Complete the previous step to unlock this step" : ""}
+                                        title={isGenerating ? "Image generation in progress..." : (!isUnlocked ? "Complete the previous step to unlock this step" : "")}
                                     >
                                         {isCompleted ? (
                                             <Check className="w-5 h-5 text-white" strokeWidth={3} />

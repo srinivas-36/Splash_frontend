@@ -1,41 +1,155 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Save } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Save, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { apiService } from '@/lib/api';
 
 export const ProfileInfo = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userData, setUserData] = useState({
+    email: '',
+    full_name: '',
+    username: '',
+  });
+  const [formData, setFormData] = useState({
+    full_name: '',
+    username: '',
+  });
 
-  const handleSave = () => {
-    toast.success('Profile updated successfully!');
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to view your profile');
+        return;
+      }
+
+      const response = await apiService.getUserProfile(token);
+      if (response && response.success) {
+        const user = response.user;
+        setUserData(user);
+        setFormData({
+          full_name: user.full_name || '',
+          username: user.username || '',
+        });
+      } else {
+        toast.error('Failed to load profile');
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to update your profile');
+        return;
+      }
+
+      const response = await apiService.updateUserProfile(formData, token);
+      if (response && response.success) {
+        setUserData(response.user);
+        setIsEditing(false);
+        toast.success('Profile updated successfully!');
+      } else {
+        toast.error(response?.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error?.message || 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      full_name: userData.full_name || '',
+      username: userData.username || '',
+    });
     setIsEditing(false);
   };
+
+  const getInitials = () => {
+    if (userData.full_name) {
+      const names = userData.full_name.split(' ');
+      if (names.length >= 2) {
+        return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+      }
+      return userData.full_name.substring(0, 2).toUpperCase();
+    }
+    if (userData.username) {
+      return userData.username.substring(0, 2).toUpperCase();
+    }
+    if (userData.email) {
+      return userData.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
+
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#884cff]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Profile & Personal Info</h1>
-          <p className="text-muted-foreground">Manage your personal information and preferences</p>
+          <p className="text-muted-foreground">Manage your personal information</p>
         </div>
         {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)} className="bg-gradient-to-r from-accent to-accent/80">
+          <Button onClick={() => setIsEditing(true)} className="bg-[#884cff] hover:bg-[#884cff]/90">
             Edit Profile
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
+            <Button variant="outline" onClick={handleCancel} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-gradient-to-r from-success to-success/80">
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
+            <Button onClick={handleSave} disabled={saving} className="bg-[#884cff] hover:bg-[#884cff]/90">
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
             </Button>
           </div>
         )}
@@ -43,124 +157,55 @@ export const ProfileInfo = () => {
 
       <Card className="shadow-elegant">
         <CardHeader>
-          <CardTitle>Profile Photo</CardTitle>
-          <CardDescription>Update your profile picture</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-6">
-            <div className="relative group">
-              <Avatar className="w-24 h-24">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-              {isEditing && (
-                <button className="absolute inset-0 bg-primary/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-6 h-6 text-white" />
-                </button>
-              )}
-            </div>
-            {isEditing && (
-              <div>
-                <Button variant="outline" size="sm">
-                  Upload Photo
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">JPG, PNG up to 5MB</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-elegant">
-        <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>Your account details</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex items-center gap-6">
+            <Avatar className="w-24 h-24">
+              <AvatarFallback className="bg-[#884cff] text-white text-2xl">
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-sm text-muted-foreground">Profile Picture</p>
+              <p className="text-xs text-muted-foreground mt-1">Initials are generated from your name</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="first-name">First Name</Label>
+              <Label htmlFor="full_name">Full Name</Label>
               <Input
-                id="first-name"
-                defaultValue="John"
+                id="full_name"
+                value={formData.full_name}
+                onChange={handleInputChange}
                 disabled={!isEditing}
+                placeholder="Enter your full name"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="last-name">Last Name</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="last-name"
-                defaultValue="Doe"
+                id="username"
+                value={formData.username}
+                onChange={handleInputChange}
                 disabled={!isEditing}
+                placeholder="Enter your username"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="company">Company Name</Label>
+            <Label htmlFor="email">Email Address</Label>
             <Input
-              id="company"
-              defaultValue="Fashion Brand Co."
-              disabled={!isEditing}
+              id="email"
+              type="email"
+              value={userData.email}
+              disabled
+              className="bg-muted"
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                defaultValue="john@example.com"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                defaultValue="+1 (555) 123-4567"
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-elegant">
-        <CardHeader>
-          <CardTitle>Regional Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <Select defaultValue="en" disabled={!isEditing}>
-                <SelectTrigger id="language">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Spanish</SelectItem>
-                  <SelectItem value="fr">French</SelectItem>
-                  <SelectItem value="de">German</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select defaultValue="utc-5" disabled={!isEditing}>
-                <SelectTrigger id="timezone">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="utc-8">Pacific Time (UTC-8)</SelectItem>
-                  <SelectItem value="utc-5">Eastern Time (UTC-5)</SelectItem>
-                  <SelectItem value="utc+0">UTC (UTC+0)</SelectItem>
-                  <SelectItem value="utc+1">Central European (UTC+1)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-xs text-muted-foreground">Email cannot be changed</p>
           </div>
         </CardContent>
       </Card>

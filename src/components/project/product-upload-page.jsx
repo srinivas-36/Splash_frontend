@@ -91,7 +91,7 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
 
             if (response.success) {
                 // Refresh collection data to get uploaded products
-                const updatedCollection = await apiService.getCollection(collectionData.id)
+                const updatedCollection = await apiService.getCollection(collectionData.id, token)
                 if (updatedCollection.items?.[0]?.product_images) {
                     setUploadedProducts(updatedCollection.items[0].product_images)
                 }

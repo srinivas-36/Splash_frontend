@@ -3,13 +3,15 @@ import { Sparkles, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
+import { useImageGeneration } from "@/context/ImageGenerationContext"
 
-export function GenerateSection({ project, collectionData, onGenerate, canEdit }) {
+export function GenerateSection({ project, collectionData, onGenerate, canEdit, isOwner = false }) {
     const [generating, setGenerating] = useState(false)
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
     const [selectedModel, setSelectedModel] = useState(null)
     const { token } = useAuth()
+    const { setIsGenerating } = useImageGeneration()
     // Get the selected model from backend
     useEffect(() => {
         const loadSelectedModel = async () => {
@@ -45,6 +47,7 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit }
         }
 
         setGenerating(true)
+        setIsGenerating(true)
         setError(null)
         setSuccess(null)
 
@@ -67,6 +70,7 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit }
             setError(err.message || 'Failed to generate images')
         } finally {
             setGenerating(false)
+            setIsGenerating(false)
         }
     }
     console.log("canEdit", canEdit);
@@ -89,9 +93,9 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit }
                 </div>
                 <Button
                     onClick={handleGenerate}
-                    disabled={generating || !hasProducts || !hasModelSelected || !canEdit}
+                    disabled={generating || !hasProducts || !hasModelSelected || !isOwner}
                     className="bg-[#884cff] hover:bg-[#7a3ff0] text-white gap-2"
-                    title={canEdit ? "" : "You need Editor or Owner role to generate images"}
+                    title={isOwner ? "" : "You need Owner role to generate images"}
                 >
                     <Sparkles className="w-4 h-4" />
                     {generating ? 'Generating...' : 'Generate Product Images'}

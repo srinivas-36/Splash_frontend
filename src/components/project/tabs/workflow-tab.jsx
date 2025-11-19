@@ -6,7 +6,6 @@ import { BriefAndConcept } from "@/components/project/brief-and-concept"
 import { ThemesAndBackgrounds } from "@/components/project/themes-and-backgrounds"
 import { ColorPalette } from "@/components/project/color-palette"
 import { GlobalInstructions } from "@/components/project/global-instructions"
-import { SelectedColorsDisplay } from "@/components/project/selected-colors-display"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, Lock } from "lucide-react"
 import { ModelSelectionSection } from "@/components/project/model-selection-section"
@@ -15,7 +14,8 @@ import { ImageGrid } from "../Image-grid"
 import { GenerateSection } from "../generate-section"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
-import { canEditProject, getUserProjectRole } from "@/lib/permissions"
+import { canEditProject, isProjectOwner } from "@/lib/permissions"
+import { useImageGeneration } from "@/context/ImageGenerationContext"
 
 export function WorkflowTab({ project }) {
     console.log("roject : ", project)
@@ -25,12 +25,16 @@ export function WorkflowTab({ project }) {
     const [error, setError] = useState(null)
     const [successMessage, setSuccessMessage] = useState(null)
     const { token, user } = useAuth()
+    const { isGenerating } = useImageGeneration()
 
     // Check if user can edit
     const canEdit = canEditProject(project, user)
     console.log("can Edit : ", canEdit)
     const userRole = project.userRole
     console.log("userRole : ", userRole)
+    // Check if user is owner (for generate button in step 5)
+    const isOwner = isProjectOwner(project, user)
+    console.log("isOwner : ", isOwner)
     // State for sequential display logic
     const [suggestionsRequested, setSuggestionsRequested] = useState(false)
 
@@ -418,10 +422,7 @@ export function WorkflowTab({ project }) {
                             onImagesChange={(images) => setUploadedImages(prev => ({ ...prev, colors: images }))}
                             canEdit={canEdit}
                         />
-                        <SelectedColorsDisplay
-                            collectionData={collectionData}
-                            canEdit={canEdit}
-                        />
+
                         <GlobalInstructions
                             project={project}
                             collectionData={collectionData}
@@ -461,6 +462,7 @@ export function WorkflowTab({ project }) {
                             collectionData={collectionData}
                             onGenerate={handleStepSave}
                             canEdit={canEdit}
+                            isOwner={isOwner}
                         />
                         <ImageGrid
                             project={project}
@@ -486,7 +488,7 @@ export function WorkflowTab({ project }) {
 
     // Function to handle step click with locking logic
     const handleStepClick = (stepNumber) => {
-        if (isStepUnlocked(stepNumber)) {
+        if (isStepUnlocked(stepNumber) && !isGenerating) {
             setActiveStep(stepNumber)
         }
     }
@@ -498,6 +500,7 @@ export function WorkflowTab({ project }) {
                 setActiveStep={handleStepClick}
                 savedSteps={savedSteps}
                 isStepUnlocked={isStepUnlocked}
+                isGenerating={isGenerating}
             />
 
             {renderStepContent()}
@@ -506,8 +509,8 @@ export function WorkflowTab({ project }) {
                 <Button
                     variant="outline"
                     className="gap-2 bg-transparent"
-                    onClick={() => setActiveStep(prev => Math.max(prev - 1, 1))}
-                    disabled={loading}
+                    onClick={() => !isGenerating && setActiveStep(prev => Math.max(prev - 1, 1))}
+                    disabled={loading || isGenerating}
                 >
                     <ChevronLeft className="w-4 h-4" />
                     Back
@@ -516,6 +519,7 @@ export function WorkflowTab({ project }) {
                 <Button
                     className="bg-[#884cff] hover:bg-[#7a3ff0] text-white px-8"
                     onClick={async () => {
+                        if (isGenerating) return;
                         try {
                             setError(null) // Clear any previous errors
                             await handleStepSave({})
@@ -565,8 +569,8 @@ export function WorkflowTab({ project }) {
                             console.error('Error in Save and Continue:', err)
                         }
                     }}
-                    disabled={loading || !canEdit}
-                    title={canEdit ? "" : "You need Editor or Owner role to save changes"}
+                    disabled={loading || !canEdit || isGenerating}
+                    title={isGenerating ? "Image generation in progress..." : (canEdit ? "" : "You need Editor or Owner role to save changes")}
                 >
                     {loading ? (activeStep === 1 ? 'Generating Suggestions...' : 'Saving...') : 'Save and Continue'}
                 </Button>
@@ -575,13 +579,14 @@ export function WorkflowTab({ project }) {
                     variant="ghost"
                     className="text-[#884cff]"
                     onClick={() => {
+                        if (isGenerating) return;
                         const nextStep = Math.min(activeStep + 1, 5)
                         if (isStepUnlocked(nextStep)) {
                             setActiveStep(nextStep)
                         }
                     }}
-                    disabled={loading || !isStepUnlocked(Math.min(activeStep + 1, 5))}
-                    title={!isStepUnlocked(Math.min(activeStep + 1, 5)) ? "Complete the current step to unlock the next step" : ""}
+                    disabled={loading || !isStepUnlocked(Math.min(activeStep + 1, 5)) || isGenerating}
+                    title={isGenerating ? "Image generation in progress..." : (!isStepUnlocked(Math.min(activeStep + 1, 5)) ? "Complete the current step to unlock the next step" : "")}
                 >
                     Next
                 </Button>

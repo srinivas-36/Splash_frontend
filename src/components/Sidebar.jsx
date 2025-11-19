@@ -302,8 +302,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useImageGeneration } from "@/context/ImageGenerationContext";
 import {
     LayoutDashboard,
     Image,
@@ -326,12 +327,15 @@ import {
     MessageSquare,
     CreditCard,
     Shield,
+    FileText,
 } from "lucide-react";
 
 export function Sidebar({ collapsed, setCollapsed, hovered, setHovered }) {
     const [expandedItems, setExpandedItems] = useState(["Individual Generator"]);
     const pathname = usePathname();
+    const router = useRouter();
     const { logout } = useAuth();
+    const { isGenerating } = useImageGeneration();
 
     const navItems = [
         {
@@ -375,14 +379,24 @@ export function Sidebar({ collapsed, setCollapsed, hovered, setHovered }) {
                 { label: "Subscription", icon: CreditCard, path: "/dashboard/my-account/billing" },
                 { label: "Security", icon: Shield, path: "/dashboard/my-account/security" },
                 { label: "Notifications", icon: Bell, path: "/dashboard/my-account/notification" },
+                { label: "Prompt Master", icon: FileText, path: "/dashboard/my-account/prompt-master" },
             ],
         },
     ];
 
     const toggleExpanded = (label) => {
+        if (isGenerating) return;
         setExpandedItems((prev) =>
             prev.includes(label) ? prev.filter((i) => i !== label) : [...prev, label]
         );
+    };
+
+    const handleLinkClick = (e, path) => {
+        if (isGenerating) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
     };
 
     const isActive = (path, hasChildren = false) => {
@@ -405,20 +419,34 @@ export function Sidebar({ collapsed, setCollapsed, hovered, setHovered }) {
         >
             {/* Header */}
             <div className="flex items-center h-16 px-3 border-b border-gray-800">
-                <Link href="/dashboard" className="flex items-center gap-2 flex-1 group">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-                        <Sparkles className="w-5 h-5 text-white" />
+                {isGenerating ? (
+                    <div className="flex items-center gap-2 flex-1 group cursor-not-allowed opacity-50">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center transition-transform duration-200">
+                            <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                        {isExpanded && (
+                            <span className="text-lg font-semibold tracking-tight ml-2">
+                                Splash AI Studio
+                            </span>
+                        )}
                     </div>
-                    {isExpanded && (
-                        <span className="text-lg font-semibold tracking-tight ml-2">
-                            Splash AI Studio
-                        </span>
-                    )}
-                </Link>
+                ) : (
+                    <Link href="/dashboard" className="flex items-center gap-2 flex-1 group">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+                            <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                        {isExpanded && (
+                            <span className="text-lg font-semibold tracking-tight ml-2">
+                                Splash AI Studio
+                            </span>
+                        )}
+                    </Link>
+                )}
 
                 <button
-                    onClick={() => setCollapsed(!collapsed)}
-                    className="ml-2 flex items-center justify-center w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 transition"
+                    onClick={() => !isGenerating && setCollapsed(!collapsed)}
+                    disabled={isGenerating}
+                    className={`ml-2 flex items-center justify-center w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 transition ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     {collapsed ? (
                         <ChevronRight className="w-6 h-6 text-white" />
@@ -435,13 +463,14 @@ export function Sidebar({ collapsed, setCollapsed, hovered, setHovered }) {
                         {item.children ? (
                             <>
                                 <button
-                                    onClick={() => isExpanded && toggleExpanded(item.label)}
+                                    onClick={() => isExpanded && !isGenerating && toggleExpanded(item.label)}
+                                    disabled={isGenerating}
                                     className={`w-full flex items-center ${isExpanded ? "gap-3" : "justify-center"} 
               px-3 py-2 rounded-md text-sm font-medium transition-colors 
               ${isActive(item.path, true)
                                             ? "bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-md"
                                             : "text-gray-300 hover:bg-white/10 hover:text-white"
-                                        }`}
+                                        } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <item.icon className={`${isExpanded ? "w-5 h-5" : "w-7 h-7"} transition-all`} />
                                     {isExpanded && (
@@ -458,37 +487,67 @@ export function Sidebar({ collapsed, setCollapsed, hovered, setHovered }) {
                                 </button>
 
                                 {isExpanded && expandedItems.includes(item.label) && (
-                                    <div className="ml-6 mt-1 space-y-1 animate-fadeIn">
+                                    <div className={`ml-6 mt-1 space-y-1 animate-fadeIn ${isGenerating ? 'pointer-events-none opacity-50' : ''}`}>
                                         {item.children.map((child) => (
-                                            <Link
-                                                key={child.path}
-                                                href={child.path}
-                                                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
-                                                    ${isActive(child.path)
-                                                        ? "bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-md"
-                                                        : "text-gray-400 hover:text-white hover:bg-white/10"
-                                                    }`}
-                                            >
-                                                <child.icon className="w-4 h-4" />
-                                                <span>{child.label}</span>
-                                            </Link>
+                                            isGenerating ? (
+                                                <div
+                                                    key={child.path}
+                                                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed
+                                                        ${isActive(child.path)
+                                                            ? "bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-md"
+                                                            : "text-gray-400"
+                                                        }`}
+                                                >
+                                                    <child.icon className="w-4 h-4" />
+                                                    <span>{child.label}</span>
+                                                </div>
+                                            ) : (
+                                                <Link
+                                                    key={child.path}
+                                                    href={child.path}
+                                                    onClick={(e) => handleLinkClick(e, child.path)}
+                                                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
+                                                        ${isActive(child.path)
+                                                            ? "bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-md"
+                                                            : "text-gray-400 hover:text-white hover:bg-white/10"
+                                                        }`}
+                                                >
+                                                    <child.icon className="w-4 h-4" />
+                                                    <span>{child.label}</span>
+                                                </Link>
+                                            )
                                         ))}
                                     </div>
                                 )}
                             </>
                         ) : (
-                            <Link
-                                href={item.path}
-                                className={`flex items-center ${isExpanded ? "gap-3" : "justify-center my-3"} 
-                                    px-3 py-2 rounded-md text-sm font-medium transition-colors my-3
-                                    ${isActive(item.path)
-                                        ? "bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-md"
-                                        : "text-gray-300 hover:bg-white/10 hover:text-white"
-                                    }`}
-                            >
-                                <item.icon className={`transition-all w-5 h-5 ${isExpanded ? "" : "my-3"}`} />
-                                {isExpanded && <span>{item.label}</span>}
-                            </Link>
+                            isGenerating ? (
+                                <div
+                                    className={`flex items-center ${isExpanded ? "gap-3" : "justify-center my-3"} 
+                                        px-3 py-2 rounded-md text-sm font-medium transition-colors my-3 cursor-not-allowed opacity-50
+                                        ${isActive(item.path)
+                                            ? "bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-md"
+                                            : "text-gray-300"
+                                        }`}
+                                >
+                                    <item.icon className={`transition-all w-5 h-5 ${isExpanded ? "" : "my-3"}`} />
+                                    {isExpanded && <span>{item.label}</span>}
+                                </div>
+                            ) : (
+                                <Link
+                                    href={item.path}
+                                    onClick={(e) => handleLinkClick(e, item.path)}
+                                    className={`flex items-center ${isExpanded ? "gap-3" : "justify-center my-3"} 
+                                        px-3 py-2 rounded-md text-sm font-medium transition-colors my-3
+                                        ${isActive(item.path)
+                                            ? "bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-md"
+                                            : "text-gray-300 hover:bg-white/10 hover:text-white"
+                                        }`}
+                                >
+                                    <item.icon className={`transition-all w-5 h-5 ${isExpanded ? "" : "my-3"}`} />
+                                    {isExpanded && <span>{item.label}</span>}
+                                </Link>
+                            )
                         )}
                     </div>
                 ))}
@@ -499,9 +558,10 @@ export function Sidebar({ collapsed, setCollapsed, hovered, setHovered }) {
                 <div className="flex flex-col items-center justify-center gap-2 py-3 px-4">
                     {/* Logout button - visible both in collapsed and expanded */}
                     <button
-                        onClick={logout}
+                        onClick={() => !isGenerating && logout()}
+                        disabled={isGenerating}
                         className={`flex items-center ${isExpanded ? "gap-3 w-full text-left" : "justify-center"} 
-                            text-gray-300 hover:text-white px-3 py-2 rounded-md hover:bg-white/10 transition`}
+                            text-gray-300 hover:text-white px-3 py-2 rounded-md hover:bg-white/10 transition ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <LogOut className="w-5 h-5" />
                         {isExpanded && <span>Logout</span>}

@@ -25,26 +25,6 @@ export function GlobalInstructions({
         }
     }, [instructions, onInstructionsChange])
 
-    // Check if there are any uploaded images or selected items to show instructions
-    const item = collectionData?.items?.[0]
-    const hasUploadedContent = item && (
-        (item.uploaded_theme_images && item.uploaded_theme_images.length > 0) ||
-        (item.uploaded_background_images && item.uploaded_background_images.length > 0) ||
-        (item.uploaded_pose_images && item.uploaded_pose_images.length > 0) ||
-        (item.uploaded_location_images && item.uploaded_location_images.length > 0) ||
-        (item.uploaded_color_images && item.uploaded_color_images.length > 0) ||
-        (item.picked_colors && item.picked_colors.length > 0) ||
-        (item.selected_themes && item.selected_themes.length > 0) ||
-        (item.selected_backgrounds && item.selected_backgrounds.length > 0) ||
-        (item.selected_poses && item.selected_poses.length > 0) ||
-        (item.selected_locations && item.selected_locations.length > 0) ||
-        (item.selected_colors && item.selected_colors.length > 0)
-    )
-
-    if (!hasUploadedContent) {
-        return null
-    }
-
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-2">

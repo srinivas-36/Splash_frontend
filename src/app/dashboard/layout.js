@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { AuthProvider } from "@/context/AuthContext";
+import { ImageGenerationProvider } from "@/context/ImageGenerationContext";
+import { NavigationBlocker } from "@/components/NavigationBlocker";
 
 import { Topbar } from "@/components/Topbar";
 
@@ -43,7 +45,10 @@ export default function DashboardLayout({ children }) {
                     }}
                 >
                     <AuthProvider>
-                        {children}
+                        <ImageGenerationProvider>
+                            <NavigationBlocker />
+                            {children}
+                        </ImageGenerationProvider>
                     </AuthProvider>
                 </main>
             </div>

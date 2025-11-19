@@ -147,38 +147,35 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
         <div className="space-y-4">
             <h3 className="font-bold text-[#1a1a1a] text-lg">Color Palette</h3>
 
-            {showSuggestions && aiColorSuggestions.length > 0 ? (
-                <div className="space-y-3">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                        <p className="text-blue-600 text-sm font-medium">AI Suggested Color Palettes</p>
-                    </div>
-                    <MultiSelect
-                        options={aiColorSuggestions}
-                        selected={selectedColors}
-                        onChange={(newSelection) => setSelectedColors(newSelection)}
-                        placeholder="Select color palettes..."
-                        disabled={!canEdit}
-                    />
+            <div className="flex gap-6">
+                {/* AI Suggested Color Palettes Section - 50% width */}
+                <div className="flex-1 w-2/3 space-y-3">
+                    {showSuggestions && aiColorSuggestions.length > 0 ? (
+                        <>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                                <p className="text-blue-600 text-sm text-center font-medium">AI Suggested Color Palettes</p>
+                            </div>
+                            <MultiSelect
+                                options={aiColorSuggestions}
+                                selected={selectedColors}
+                                onChange={(newSelection) => setSelectedColors(newSelection)}
+                                placeholder="Select color palettes..."
+                                disabled={!canEdit}
+                            />
+                        </>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-3 py-2 border border-[#e6e6e6] rounded-lg bg-gray-50">
+                                <div className="w-4 h-4 border border-[#708090] rounded"></div>
+                                <span className="text-sm text-[#708090] flex-1">AI Suggested Color Palettes</span>
+                                <ChevronDown className="w-4 h-4 text-[#708090]" />
+                            </div>
+                        </div>
+                    )}
                 </div>
-            ) : (
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 px-3 py-2 border border-[#e6e6e6] rounded-lg bg-gray-50">
-                        <div className="w-4 h-4 border border-[#708090] rounded"></div>
-                        <span className="text-sm text-[#708090] flex-1">AI Suggested Color Palettes</span>
-                        <ChevronDown className="w-4 h-4 text-[#708090]" />
-                    </div>
-                </div>
-            )}
 
-            <div className="space-y-4">
-                <textarea
-                    placeholder="Describe your Color palette (e.g., Warm earth tones, Vibrant Blue, Monochromatic"
-                    className="w-full h-20 px-4 py-3 border border-[#e6e6e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#884cff] focus:border-transparent resize-none disabled:bg-gray-50 disabled:cursor-not-allowed"
-                    disabled={!canEdit}
-                />
-
-                {/* Color Picker Section */}
-                <div className="space-y-3">
+                {/* Color Picker Section - 50% width */}
+                <div className="flex-1 w-1/2 space-y-3">
                     <p className="text-sm text-[#708090]">Or pick specific colors:</p>
                     <ColorPicker
                         selectedColors={pickedColors}
@@ -203,59 +200,6 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
                                             }}
                                             title={color}
                                         />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-
-                <div className="space-y-3">
-                    <p className="text-sm text-[#708090]">Or upload color palette images:</p>
-
-                    {/* Hidden file input */}
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFileInputChange}
-                        className="hidden"
-                        disabled={!canEdit}
-                    />
-
-                    <Button
-                        variant="outline"
-                        className="w-full bg-transparent"
-                        disabled={!canEdit || uploading}
-                        onClick={triggerFileInput}
-                    >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {uploading ? 'Uploading...' : 'Choose color palette images'}
-                    </Button>
-
-                    {/* Uploaded images preview */}
-                    {uploadedImages.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="text-xs text-[#708090]">
-                                {uploadedImages.length} file(s) selected
-                            </p>
-                            <div className="grid grid-cols-3 gap-2">
-                                {uploadedImages.map((image) => (
-                                    <div key={image.id} className="relative group">
-                                        <img
-                                            src={image.url}
-                                            alt={image.name}
-                                            className="w-full h-16 object-cover rounded border"
-                                        />
-                                        <button
-                                            onClick={() => removeUploadedImage(image.id)}
-                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            disabled={!canEdit}
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
                                     </div>
                                 ))}
                             </div>

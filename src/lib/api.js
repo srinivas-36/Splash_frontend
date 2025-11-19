@@ -101,6 +101,25 @@ class ApiService {
         })
     }
 
+    async getUserProfile(token) {
+        return this.request('/api/profile/', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async updateUserProfile(profileData, token) {
+        return this.request('/api/profile/update/', {
+            method: 'PUT',
+            body: JSON.stringify(profileData),
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
     // Project endpoints
     async getProjects(token) {
         console.log('Getting projects with token:', token);
@@ -652,6 +671,71 @@ class ApiService {
     async getRecentImages(token, limit = 5) {
         return this.get('/probackendapp/api/recent/images/', {
             params: { limit },
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async getCollectionHistory(collectionId, token) {
+        return this.get(`/probackendapp/api/collections/${collectionId}/history/`, {
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    // Prompt Master endpoints
+    async getPrompts(token) {
+        return this.get('/probackendapp/api/prompts/', {
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async getPrompt(promptId, token) {
+        return this.get(`/probackendapp/api/prompts/${promptId}/`, {
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async createPrompt(promptData, token) {
+        return this.post('/probackendapp/api/prompts/create/', promptData, {
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async updatePrompt(promptId, promptData, token) {
+        return this.put(`/probackendapp/api/prompts/${promptId}/update/`, promptData, {
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async deletePrompt(promptId, token) {
+        return this.delete(`/probackendapp/api/prompts/${promptId}/delete/`, {
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async getPromptByKey(promptKey, token) {
+        return this.get(`/probackendapp/api/prompts/key/${promptKey}/`, {
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
+    async initializePrompts(token) {
+        return this.post('/probackendapp/api/prompts/initialize/', {}, {
             headers: {
                 'Authorization': `Bearer ${token || ''}`,
             },
