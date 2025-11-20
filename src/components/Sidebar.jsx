@@ -465,7 +465,7 @@ export function Sidebar({ collapsed, setCollapsed, hovered, setHovered }) {
                                 <button
                                     onClick={() => isExpanded && !isGenerating && toggleExpanded(item.label)}
                                     disabled={isGenerating}
-                                    className={`w-full flex items-center ${isExpanded ? "gap-3" : "justify-center"} 
+                                    className={`w-full flex items-center cursor-pointer ${isExpanded ? "gap-3" : "justify-center"} 
               px-3 py-2 rounded-md text-sm font-medium transition-colors 
               ${isActive(item.path, true)
                                             ? "bg-white/10 backdrop-blur-md border border-white/10 text-white shadow-md"

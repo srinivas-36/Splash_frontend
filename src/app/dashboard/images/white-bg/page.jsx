@@ -88,8 +88,13 @@ const PlainBackgroundForm = () => {
         setRegenerateModal(prev => ({ ...prev, loading: true, error: null }))
 
         try {
+            // Only use mongo_id - ornament_id is a Django model ID, not a MongoDB ObjectId
+            if (!result.mongo_id) {
+                throw new Error('Cannot regenerate: MongoDB ID is missing. Please generate a new image first.')
+            }
+
             const response = await apiService.regenerateImage(
-                result.mongo_id || result.ornament_id,
+                result.mongo_id,
                 regenerateModal.prompt,
                 token
             )

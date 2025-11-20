@@ -168,10 +168,12 @@ class ApiService {
         });
     }
 
-    async deleteProject(projectId) {
-        return this.request(`/probackendapp/api/projects/${projectId}/`, {
+    async deleteProject(projectId, token) {
+        return this.request(`/probackendapp/api/projects/${projectId}/delete/`, {
             method: 'DELETE',
-
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
         });
     }
 
@@ -604,7 +606,17 @@ class ApiService {
 
     // Regeneration endpoints
     async regenerateImage(imageId, prompt, token) {
-        // const token = localStorage.getItem('token');
+        // Validate MongoDB ObjectId format (24 hex characters)
+        if (!imageId || typeof imageId !== 'string') {
+            throw new Error('Invalid image ID: image_id is required and must be a string');
+        }
+        
+        // MongoDB ObjectId must be exactly 24 hex characters
+        const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+        if (!objectIdPattern.test(imageId)) {
+            throw new Error(`Invalid image ID: '${imageId}' is not a valid MongoDB ObjectId. It must be a 24-character hex string. Please ensure you are using mongo_id, not ornament_id.`);
+        }
+
         const formData = new FormData();
         formData.append('image_id', imageId);
         formData.append('prompt', prompt);

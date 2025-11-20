@@ -46,8 +46,17 @@ export default function ProjectPage({ params }) {
         }
     }, [projectId])
 
-    const handleProjectUpdate = (updatedProject) => {
-        setProject(updatedProject)
+    const handleProjectUpdate = async (updatedProject) => {
+        // Refetch the project to ensure we have the latest data from the backend
+        try {
+            const token = localStorage.getItem('token')
+            const projectData = await apiService.getProject(projectId, token)
+            setProject(projectData)
+        } catch (err) {
+            console.error('Error refetching project:', err)
+            // Fallback to using the updated project data if refetch fails
+            setProject(updatedProject)
+        }
     }
 
     if (loading) {

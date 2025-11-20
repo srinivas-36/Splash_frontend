@@ -115,7 +115,7 @@ const HeroSection = () => {
             CAMPAIGN READY VISUALS, WITHOUT THE SHOOT
           </span>
           <Link
-            href="/auth"
+            href="/login"
             className="inline-flex items-center justify-center bg-gradient-to-br from-[#5533FF] via-[#863FFF] to-[#C44DFF] text-white font-medium rounded-xl px-3 py-2 hover:bg-purple-600 transition-colors animate-slideFadeIn delay-100"
           >
             Try Splash AI
