@@ -351,9 +351,12 @@ async request(endpoint, options = {}) {
     }
 
     // AI Image Generation endpoints
-    async generateAIImages(collectionId) {
+    async generateAIImages(collectionId,token) {
         return this.request(`/probackendapp/api/collections/${collectionId}/generate-images/`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
         });
     }
 
