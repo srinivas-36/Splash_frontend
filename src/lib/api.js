@@ -356,6 +356,7 @@ async request(endpoint, options = {}) {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
+                'Content-Type':'application/json'
             },
         });
     }
