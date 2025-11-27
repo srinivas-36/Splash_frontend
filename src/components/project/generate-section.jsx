@@ -52,18 +52,42 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
         setSuccess(null)
 
         try {
-            const response = await apiService.generateProductModelImages(
-                collectionData.id, token,
-            )
+            let totalGenerated = 0
+            let successCount = 0
+            let errorCount = 0
 
-            if (response.success) {
-                setSuccess(`Generated ${response.total_generated || 0} images successfully!`)
+            // Generate images for each product individually
+            for (let i = 0; i < productImages.length; i++) {
+                const product = productImages[i]
+                try {
+                    const response = await apiService.generateSingleProductModelImages(
+                        collectionData.id,
+                        product.uploaded_image_url,
+                        product.uploaded_image_path,
+                        token
+                    )
+
+                    if (response.success) {
+                        totalGenerated += response.generated_count || 0
+                        successCount++
+                    } else {
+                        errorCount++
+                        console.error(`Failed to generate images for product ${i + 1}:`, response.error)
+                    }
+                } catch (err) {
+                    errorCount++
+                    console.error(`Error generating images for product ${i + 1}:`, err)
+                }
+            }
+
+            if (successCount > 0) {
+                setSuccess(`Generated ${totalGenerated} images successfully for ${successCount} product(s)!${errorCount > 0 ? ` (${errorCount} failed)` : ''}`)
                 if (onGenerate) {
                     await onGenerate({ imagesGenerated: true })
                 }
                 setTimeout(() => setSuccess(null), 5000)
             } else {
-                setError(response.error || 'Failed to generate images')
+                setError(`Failed to generate images for all products. ${errorCount} product(s) failed.`)
             }
         } catch (err) {
             console.error('Error generating images:', err)
