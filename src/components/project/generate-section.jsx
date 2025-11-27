@@ -10,6 +10,7 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
     const [error, setError] = useState(null)
     const [success, setSuccess] = useState(null)
     const [selectedModel, setSelectedModel] = useState(null)
+    const [generationProgress, setGenerationProgress] = useState(null) // { current: 1, total: 3 }
     const { token } = useAuth()
     const { setIsGenerating } = useImageGeneration()
     // Get the selected model from backend
@@ -55,11 +56,16 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
             let totalGenerated = 0
             let successCount = 0
             let errorCount = 0
+            const errors = []
 
-            // Generate images for each product individually
+            // Generate images for each product individually to avoid CORS issues
+            // Instead of: POST /generate-all with [orn1, orn2, orn3]
+            // We do: POST /generate for orn1, POST /generate for orn2, POST /generate for orn3
             for (let i = 0; i < productImages.length; i++) {
                 const product = productImages[i]
+                setGenerationProgress({ current: i + 1, total: productImages.length })
                 try {
+                    console.log(`Generating images for product ${i + 1} of ${productImages.length}...`)
                     const response = await apiService.generateSingleProductModelImages(
                         collectionData.id,
                         product.uploaded_image_url,
@@ -70,13 +76,18 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
                     if (response.success) {
                         totalGenerated += response.generated_count || 0
                         successCount++
+                        console.log(`✅ Generated ${response.generated_count || 0} images for product ${i + 1}`)
                     } else {
                         errorCount++
-                        console.error(`Failed to generate images for product ${i + 1}:`, response.error)
+                        const errorMsg = `Product ${i + 1}: ${response.error || 'Unknown error'}`
+                        errors.push(errorMsg)
+                        console.error(`❌ Failed to generate images for product ${i + 1}:`, response.error)
                     }
                 } catch (err) {
                     errorCount++
-                    console.error(`Error generating images for product ${i + 1}:`, err)
+                    const errorMsg = `Product ${i + 1}: ${err.message || 'Network error'}`
+                    errors.push(errorMsg)
+                    console.error(`❌ Error generating images for product ${i + 1}:`, err)
                 }
             }
 
@@ -87,7 +98,8 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
                 }
                 setTimeout(() => setSuccess(null), 5000)
             } else {
-                setError(`Failed to generate images for all products. ${errorCount} product(s) failed.`)
+                const errorMessage = `Failed to generate images for all products. ${errorCount} product(s) failed.${errors.length > 0 ? `\nErrors: ${errors.join(', ')}` : ''}`
+                setError(errorMessage)
             }
         } catch (err) {
             console.error('Error generating images:', err)
@@ -95,6 +107,7 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
         } finally {
             setGenerating(false)
             setIsGenerating(false)
+            setGenerationProgress(null)
         }
     }
     console.log("canEdit", canEdit);
@@ -143,9 +156,16 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
                 <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center gap-3">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                        <p className="text-blue-600 text-sm">
-                            Generating images... This may take several minutes depending on the number of products.
-                        </p>
+                        <div className="flex-1">
+                            <p className="text-blue-600 text-sm">
+                                Generating images... This may take several minutes depending on the number of products.
+                            </p>
+                            {generationProgress && (
+                                <p className="text-blue-500 text-xs mt-1">
+                                    Processing product {generationProgress.current} of {generationProgress.total}...
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
